@@ -8,5 +8,8 @@
 # TODO: Use an immutable image tag before moving to production
 FROM bitnami/keycloak:20
 
+# Trivial mutation to ensure the image is not exactly same as Bitnami’s.
+# TODO: Remove once there are other modifications.
+RUN echo "I’m different from a normal Bitnami Keycloak image!" > my.soul
 
 #COPY --from=build /home/app/keycloak-tolkevarav-provider/build/libs/keycloak-tolkevarav-provider.jar /opt/bitnami/keycloak/standalone/deployments/keycloak-tolkevarav-provider.jar
