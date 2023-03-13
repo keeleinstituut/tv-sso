@@ -1,0 +1,12 @@
+name: Publish packages to GHCR
+run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
+on:
+  push:
+    branches:
+      - main
+jobs:
+  publish-docker-image:
+    uses: keeleinstituut/tv-devops/.github/workflows/docker-build-publish.yaml@feature/#116
+  publish-helm-image:
+    needs: publish-docker-image
+    uses: keeleinstituut/tv-devops/.github/workflows/helm-package-publish.yaml@feature/#116
