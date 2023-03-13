@@ -9,6 +9,13 @@ on:
 jobs:
   publish_docker_image:
     uses: keeleinstituut/tv-devops/.github/workflows/docker_build_publish.yaml@feature/#116
+    with:
+      commit_sha: ${{ github.sha }}
+      image_repository: ${{ github.repository }}
   publish_helm_image:
     needs: publish_docker_image
     uses: keeleinstituut/tv-devops/.github/workflows/helm_package_publish.yaml@feature/#116
+    with:
+      commit_sha: ${{ github.sha }}
+      image_repository: ${{ github.repository }}
+
