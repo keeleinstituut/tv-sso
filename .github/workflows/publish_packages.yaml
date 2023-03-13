@@ -4,9 +4,10 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch: {}
 jobs:
-  publish-docker-image:
+  publish_docker_image:
     uses: keeleinstituut/tv-devops/.github/workflows/docker-build-publish.yaml@feature/#116
-  publish-helm-image:
-    needs: publish-docker-image
+  publish_helm_image:
+    needs: publish_docker_image
     uses: keeleinstituut/tv-devops/.github/workflows/helm-package-publish.yaml@feature/#116
