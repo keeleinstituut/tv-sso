@@ -18,9 +18,6 @@ keycloak:
     enabled: true
     # TODO: Update configuration below after adopting Istio
     hostname: sso.dev.tolkevarav.eki.ee
-    annotations:
-      nginx.ingress.kubernetes.io/rewrite-target: /$1
-      nginx.ingress.kubernetes.io/use-regex: "true"
   # TODO: Once Postgres operator is in use, use the operator’s database as suggested by commented-out code below
 #  postgresql.enabled: "false"
 #  externalDatabase:
