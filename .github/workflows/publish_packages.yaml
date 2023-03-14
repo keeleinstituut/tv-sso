@@ -1,0 +1,16 @@
+name: Publish packages to GHCR
+
+
+on:
+  push:
+    tags:
+      - "*"
+
+
+jobs:
+  publish:
+    uses: keeleinstituut/tv-devops/.github/workflows/publish.yaml@feature/#116 # TODO: remove @ref
+    with:
+      repository: ${{ github.repository }}
+      tag: ${{ github.ref_name }}
+
