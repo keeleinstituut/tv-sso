@@ -8,17 +8,16 @@ global:
 keycloak:
   nameOverride: sso
   image:
-    repository: "__IMAGE_NAME__" # Replaced during continuous delivery pipeline
-    tag: "__GIT_COMMIT_SHA__" # Replaced during continuous delivery pipeline
-    pullPolicy: Always
+    registry: ghcr.io
+    repository: "__IMAGE_REPOSITORY__" # Replaced during continuous delivery pipeline
+    tag: "__IMAGE_TAG__" # Replaced during continuous delivery pipeline
+    pullSecrets:
+      - ghcr-read-only-secret
+
   ingress:
     enabled: true
     # TODO: Update configuration below after adopting Istio
-    hostname: dev.tolkevarav.eki.ee
-    path: /sso(?:/(.*))?
-    annotations:
-      nginx.ingress.kubernetes.io/rewrite-target: /$1
-      nginx.ingress.kubernetes.io/use-regex: "true"
+    hostname: sso.dev.tolkevarav.eki.ee
   # TODO: Once Postgres operator is in use, use the operator’s database as suggested by commented-out code below
 #  postgresql.enabled: "false"
 #  externalDatabase:
