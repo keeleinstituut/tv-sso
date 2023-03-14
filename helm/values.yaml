@@ -17,8 +17,7 @@ keycloak:
   ingress:
     enabled: true
     # TODO: Update configuration below after adopting Istio
-    hostname: dev.tolkevarav.eki.ee
-    path: /sso(?:/(.*))?
+    hostname: sso.dev.tolkevarav.eki.ee
     annotations:
       nginx.ingress.kubernetes.io/rewrite-target: /$1
       nginx.ingress.kubernetes.io/use-regex: "true"
