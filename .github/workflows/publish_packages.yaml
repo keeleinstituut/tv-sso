@@ -8,9 +8,10 @@ on:
 
 
 jobs:
-  publish:
-    uses: keeleinstituut/tv-devops/.github/workflows/publish.yaml@feature/#116 # TODO: remove @ref
+  publish_if_necessary:
+    uses: keeleinstituut/tv-devops/.github/workflows/publish_if_necessary.yaml@feature/#116 # TODO: remove @ref
     with:
-      repository: ${{ github.repository }}
-      tag: ${{ github.ref_name }}
+      github_organization: ${{ github.repository_owner }}
+      app_name: ${{ github.event.repository.name }}
+      git_tag: ${{ github.ref_name }}
 
