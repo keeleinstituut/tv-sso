@@ -1,6 +1,6 @@
 ### Project Specific Files
 helm/charts
-
+/keycloak-claims-mapper/.gradle/
 
 ### macOS
 # General
