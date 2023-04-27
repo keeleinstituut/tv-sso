@@ -21,7 +21,8 @@ public class ExpectedValues {
     final static NameValuePair SURNAME = of("surname", "Smith");
     final static String SELECTED_INSTITUTION_ID_KEY = "selectedInstitutionId";
     final static String INSTITUTION_KEY = "selectedInstitution";
-    final static NameValuePair INSTITUTION_ID = of("id", "5730fdc0-782f-45c9-90e6-2d5a177ddc06");
+    final static NameValuePair SUCCESSFUL_RESPONSE_INSTITUTION_ID = of("id", "5730fdc0-782f-45c9-90e6-2d5a177ddc06");
+    final static NameValuePair EMPTY_RESPONSE_INSTITUTION_ID = of("id", "71912ab0-d6e8-4c7b-9427-fe1faa537ef8");
     final static NameValuePair INSTITUTION_NAME = of("name", "Smith Ltd.");
     final static String PRIVILEGES_KEY = "privileges";
     final static List<String> PRIVILEGES = List.of("ADD_USER", "EDIT_USER");
@@ -40,7 +41,7 @@ public class ExpectedValues {
             SURNAME.getName(), SURNAME.getValue(),
             PRIVILEGES_KEY, PRIVILEGES,
             INSTITUTION_KEY, Map.of(
-                INSTITUTION_ID.getName(), INSTITUTION_ID.getValue(),
+                SUCCESSFUL_RESPONSE_INSTITUTION_ID.getName(), SUCCESSFUL_RESPONSE_INSTITUTION_ID.getValue(),
                 INSTITUTION_NAME.getName(), INSTITUTION_NAME.getValue()
             )
         );

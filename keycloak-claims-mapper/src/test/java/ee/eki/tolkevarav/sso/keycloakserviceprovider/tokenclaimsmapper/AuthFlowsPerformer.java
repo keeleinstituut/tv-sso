@@ -30,50 +30,56 @@ public class AuthFlowsPerformer {
     private static final ClientID CLIENT_ID = new ClientID("tolkevarav-web-dev");
     private static final URI IGNORED_REDIRECT_URI = URI.create("https://ignore");
     private final URIAuthority keycloakUriAuthority;
+    private MockingTolkevaravHelper mockingTolkevaravHelper;
 
     private URIAuthority mockTaraUriAuthority;
 
     AuthFlowsPerformer(URIAuthority keycloakUriAuthority, URIAuthority mockTolkevaravUriAuthority) {
         this.keycloakUriAuthority = keycloakUriAuthority;
-        MockingTolkevaravConfigurer.configure(mockTolkevaravUriAuthority);
+        updateMockingTolkevaravHelper(mockTolkevaravUriAuthority);
     }
 
     public void setMockTaraUriAuthority(URIAuthority mockTaraUriAuthority) {
         this.mockTaraUriAuthority = mockTaraUriAuthority;
     }
 
+    public void updateMockingTolkevaravHelper(URIAuthority mockTolkevaravUriAuthority) {
+        this.mockingTolkevaravHelper = new MockingTolkevaravHelper(mockTolkevaravUriAuthority);
+    }
+
     OIDCTokens performAuthorizationCodeFlow(NameValuePair... headers)
-        throws ParseException, IOException, URISyntaxException {
-        var authorizationURL = followRedirectsUntilReachingIgnoredURL(
-            createAuthorizationRequestURI()
+        throws ParseException, IOException, URISyntaxException, UnsuccessfulResponseException {
+        var authenticationURL = followRedirectsUntilReachingIgnoredURL(
+            createAuthenticationRequestURI()
         );
 
-        var authorizationCode = AuthenticationResponseParser
-            .parse(authorizationURL)
-            .toSuccessResponse()
-            .getAuthorizationCode();
+        var authenticationResponse = AuthenticationResponseParser.parse(authenticationURL);
+        var authorizationCode = convertToSuccessResponseOrFail(authenticationResponse).getAuthorizationCode();
 
         var grant = new AuthorizationCodeGrant(authorizationCode, IGNORED_REDIRECT_URI);
         return queryTokenEndpointWithGrant(grant, headers).toOIDCTokens();
 
     }
 
-    AccessToken requestAccessTokenWithRefreshToken(RefreshToken refreshToken) throws ParseException, IOException, URISyntaxException {
+    AccessToken requestAccessTokenWithRefreshToken(RefreshToken refreshToken) throws ParseException, IOException, URISyntaxException, UnsuccessfulResponseException {
         var grant = new RefreshTokenGrant(refreshToken);
         return queryTokenEndpointWithGrant(grant).getAccessToken();
     }
 
-    UserInfo requestUserinfoWithAccessToken(AccessToken accessToken) throws ParseException, IOException, URISyntaxException {
+    UserInfo requestUserinfoWithAccessToken(AccessToken accessToken) throws ParseException, IOException, URISyntaxException, UnsuccessfulResponseException {
         var httpResponse = new UserInfoRequest(createUserinfoURI(), accessToken)
             .toHTTPRequest()
             .send();
 
-        return UserInfoResponse.parse(httpResponse)
-            .toSuccessResponse()
-            .getUserInfo();
+        var response = UserInfoResponse.parse(httpResponse);
+        return convertToSuccessResponseOrFail(response).getUserInfo();
     }
 
-    private Tokens queryTokenEndpointWithGrant(AuthorizationGrant grant, NameValuePair... headers) throws IOException, ParseException, URISyntaxException {
+    int retrieveMockTvApiRequestsCount() {
+        return mockingTolkevaravHelper.retrieveReceivedRequestsCount();
+    }
+
+    private Tokens queryTokenEndpointWithGrant(AuthorizationGrant grant, NameValuePair... headers) throws IOException, ParseException, URISyntaxException, UnsuccessfulResponseException {
         var request = new TokenRequest(createTokenURI(), CLIENT_ID, grant)
             .toHTTPRequest();
 
@@ -81,10 +87,8 @@ public class AuthFlowsPerformer {
             header -> request.setHeader(header.getName(), header.getValue())
         );
 
-        return OIDCTokenResponseParser
-            .parse(request.send())
-            .toSuccessResponse()
-            .getTokens();
+        var response = OIDCTokenResponseParser.parse(request.send());
+        return convertToSuccessResponseOrFail(response).getTokens();
     }
 
     private URI followResponseRedirect(ClassicHttpResponse response) throws ProtocolException {
@@ -111,7 +115,7 @@ public class AuthFlowsPerformer {
         }
     }
 
-    private URI createAuthorizationRequestURI() throws URISyntaxException {
+    private URI createAuthenticationRequestURI() throws URISyntaxException {
         var builder = new AuthenticationRequest.Builder(
             new ResponseType("code"),
             new Scope("openid"),
@@ -120,14 +124,14 @@ public class AuthFlowsPerformer {
         );
 
         return builder
-            .endpointURI(createAuthorizationURI())
+            .endpointURI(createAuthenticationURI())
             .state(new State())
             .nonce(new Nonce())
             .build()
             .toURI();
     }
 
-    URI createAuthorizationURI() throws URISyntaxException {
+    URI createAuthenticationURI() throws URISyntaxException {
         return buildKeycloakEndpointURI("auth");
     }
 
@@ -146,5 +150,27 @@ public class AuthFlowsPerformer {
             .appendPath(KEYCLOAK_PATH_PREFIX)
             .appendPath(endpointSuffix)
             .build();
+    }
+
+    private AuthenticationSuccessResponse convertToSuccessResponseOrFail(AuthenticationResponse response) throws UnsuccessfulResponseException {
+        if (!response.indicatesSuccess()) {
+            throw new UnsuccessfulResponseException(response.toHTTPResponse().getStatusCode());
+        }
+
+        return response.toSuccessResponse();
+    }
+    private AccessTokenResponse convertToSuccessResponseOrFail(TokenResponse response) throws UnsuccessfulResponseException {
+        if (!response.indicatesSuccess()) {
+            throw new UnsuccessfulResponseException(response.toHTTPResponse().getStatusCode());
+        }
+
+        return response.toSuccessResponse();
+    }
+    private UserInfoSuccessResponse convertToSuccessResponseOrFail(UserInfoResponse response) throws UnsuccessfulResponseException {
+        if (!response.indicatesSuccess()) {
+            throw new UnsuccessfulResponseException(response.toHTTPResponse().getStatusCode());
+        }
+
+        return response.toSuccessResponse();
     }
 }

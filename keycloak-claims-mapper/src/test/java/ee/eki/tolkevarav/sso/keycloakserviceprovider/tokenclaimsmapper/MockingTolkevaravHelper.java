@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 import static ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper.ExpectedValues.*;
 import static ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper.ExpectedValues.TestIdentity.values;
 import static ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper.Util.convertCamelCaseToSnakeCase;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.mockserver.model.Header.header;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.notFoundResponse;
@@ -18,34 +19,48 @@ import static org.mockserver.model.MediaType.APPLICATION_JSON;
 import static org.mockserver.model.NottableString.not;
 import static org.mockserver.model.NottableString.string;
 import static org.mockserver.model.Parameter.param;
+import static org.mockserver.model.Parameters.parameters;
 
-public class MockingTolkevaravConfigurer {
-    public static void configure(URIAuthority mockTolevaravUriAuthority) {
-        var configurationClient = new MockServerClient(mockTolevaravUriAuthority.getHostName(), mockTolevaravUriAuthority.getPort());
+public class MockingTolkevaravHelper {
+    private final MockServerClient client;
 
+    public MockingTolkevaravHelper(URIAuthority mockTolevaravUriAuthority) {
+        this.client = new MockServerClient(mockTolevaravUriAuthority.getHostName(), mockTolevaravUriAuthority.getPort());
+        configure();
+    }
+
+    public void configure() {
         for (ExpectedValues.TestIdentity identity : values()) {
             addRuleToMockTolkevaravApiServer(
-                configurationClient,
-                new Parameters(
+                parameters(
                     createIdentityPicParameterMatcher(identity),
-                    buildInstitutionIdParameterMatcher(string(INSTITUTION_ID.getValue()))
+                    buildInstitutionIdParameterMatcher(string(SUCCESSFUL_RESPONSE_INSTITUTION_ID.getValue()))
                 ),
-                response().withContentType(APPLICATION_JSON).withBody(expectedTolkevaravApiResponseJson(identity))
+                response()
+                    .withContentType(APPLICATION_JSON)
+                    .withBody(expectedTolkevaravApiResponseJson(identity))
             );
         }
 
         addRuleToMockTolkevaravApiServer(
-            configurationClient,
-            new Parameters(
-                createIdentityPicParameterMatcher(ExpectedValues.TestIdentity.values()),
-                buildInstitutionIdParameterMatcher(not(INSTITUTION_ID.getValue()))
+            parameters(
+                buildInstitutionIdParameterMatcher(string(EMPTY_RESPONSE_INSTITUTION_ID.getValue()))
             ),
-            notFoundResponse()
+            response()
+                .withContentType(APPLICATION_JSON)
+                .withBody("")
+                .withDelay(SECONDS, 10)
         );
+
+        addRuleToMockTolkevaravApiServer(parameters(), notFoundResponse());
     }
 
-    private static void addRuleToMockTolkevaravApiServer(MockServerClient configurationClient, Parameters parameters, HttpResponse responseToReturn) {
-        configurationClient.when(
+    public int retrieveReceivedRequestsCount() {
+        return client.retrieveRecordedRequests(null).length;
+    }
+
+    private void addRuleToMockTolkevaravApiServer(Parameters parameters, HttpResponse responseToReturn) {
+        client.when(
                 request()
                     .withMethod("GET")
                     .withPath("/api/jwt-claims")
@@ -58,16 +73,11 @@ public class MockingTolkevaravConfigurer {
             .respond(responseToReturn);
     }
 
-    private static Parameter buildInstitutionIdParameterMatcher(NottableString nottableString) {
+    private Parameter buildInstitutionIdParameterMatcher(NottableString nottableString) {
         return param(string(convertCamelCaseToSnakeCase(SELECTED_INSTITUTION_ID_KEY)), nottableString);
     }
 
-    private static Parameter createIdentityPicParameterMatcher(TestIdentity... identities) {
-        var picRegexMatchingAllIdentities = Stream.of(identities)
-            .map(TestIdentity::getPersonalIdentificationCode)
-            .collect(Collectors.joining("|"));
-
-        return param(convertCamelCaseToSnakeCase(PERSONAL_IDENTIFICATION_CODE_KEY), picRegexMatchingAllIdentities);
+    private Parameter createIdentityPicParameterMatcher(TestIdentity identity) {
+        return param(convertCamelCaseToSnakeCase(PERSONAL_IDENTIFICATION_CODE_KEY), identity.getPersonalIdentificationCode());
     }
-
 }

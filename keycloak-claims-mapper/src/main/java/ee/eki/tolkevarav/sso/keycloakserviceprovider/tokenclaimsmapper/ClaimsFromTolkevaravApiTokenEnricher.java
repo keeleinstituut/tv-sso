@@ -2,13 +2,19 @@ package ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.jboss.logging.Logger;
+import org.keycloak.authentication.AuthenticationProcessor;
+import org.keycloak.common.constants.ServiceAccountConstants;
 import org.keycloak.events.EventBuilder;
-import org.keycloak.models.ClientSessionContext;
-import org.keycloak.models.KeycloakSession;
-import org.keycloak.models.ProtocolMapperModel;
-import org.keycloak.models.UserSessionModel;
+import org.keycloak.models.*;
+import org.keycloak.protocol.oidc.OIDCLoginProtocol;
 import org.keycloak.protocol.oidc.TokenManager;
 import org.keycloak.representations.IDToken;
+import org.keycloak.services.Urls;
+import org.keycloak.services.managers.AuthenticationSessionManager;
+import org.keycloak.services.managers.UserSessionManager;
+import org.keycloak.services.util.DefaultClientSessionContext;
+import org.keycloak.sessions.AuthenticationSessionModel;
+import org.keycloak.sessions.RootAuthenticationSessionModel;
 import org.keycloak.utils.StringUtil;
 
 import java.io.IOException;
@@ -17,12 +23,13 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.time.Duration;
 
+import static ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper.TaraParser.TARA_SUBJECT_CLAIM_ATTRIBUTE_KEY;
+import static ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper.TaraParser.parsePicFromTaraSubClaim;
 import static java.net.http.HttpResponse.BodyHandlers.ofString;
 
 class ClaimsFromTolkevaravApiTokenEnricher {
 
     private static final String SELECTED_INSTITUTION_ID_HEADER_KEY = "X-Selected-Institution-ID";
-    private static final String TARA_SUBJECT_CLAIM_ATTRIBUTE_KEY = "tara_subject_claim";
     private final ConfigurationParameters configuration;
     private final KeycloakSession keycloakSession;
     private final UserSessionModel userSession;
@@ -40,28 +47,19 @@ class ClaimsFromTolkevaravApiTokenEnricher {
         this.clientSessionContext = clientSessionContext;
     }
 
-    void enrichToken(IDToken token) {
-        try {
-            if (configuration.isInvalid()) {
-                throw new AcceptableMapperException("Mapper configuration is invalid: " + configuration);
-            }
-
-            var claims = queryClaimsFromApi(
-                retrievePersonalIdentificationCode(),
-                retrieveInstitutionId(),
-                generateAccessToken()
-            );
-
-            logger.infof("Claims received from Tõlkevärav API: %s. Adding it to claims in token.", claims);
-            token.getOtherClaims().put("tolkevarav", claims);
-        } catch (AcceptableMapperException exception) {
-            logger.info("Cancelled enriching of token because of an acceptable scenario: %s.", exception);
-        } catch (UnacceptableMapperException | URISyntaxException | IOException exception) {
-            logger.error("Cancelled enriching of token because of an unacceptable/unexpected scenario.", exception);
-        } catch (InterruptedException interruptedException) {
-            logger.fatal("Cancelled enriching of token because of interruption.", interruptedException);
-            Thread.currentThread().interrupt();
+    void enrichToken(IDToken token) throws AcceptableMapperException, UnacceptableMapperException, URISyntaxException, IOException, InterruptedException {
+        if (configuration.isInvalid()) {
+            throw new UnacceptableMapperException("Mapper configuration is invalid: " + configuration);
         }
+
+        var claims = queryClaimsFromApi(
+            retrievePersonalIdentificationCode(),
+            retrieveInstitutionId(),
+            generateAccessToken()
+        );
+
+        logger.infof("Claims received from Tõlkevärav API: %s. Adding it to claims in token.", claims);
+        token.getOtherClaims().put("tolkevarav", claims);
     }
 
     String queryClaimsFromApi(String personalIdentificationCode, String institutionId, String accessToken)
@@ -100,20 +98,10 @@ class ClaimsFromTolkevaravApiTokenEnricher {
         return response.body();
     }
 
-    String retrievePersonalIdentificationCode() throws UnacceptableMapperException, AcceptableMapperException {
+    String retrievePersonalIdentificationCode() throws UnacceptableMapperException {
         var taraSubjectClaim = userSession.getUser().getFirstAttribute(TARA_SUBJECT_CLAIM_ATTRIBUTE_KEY);
-
-        if (userSession.getUser().getAttributes().containsKey(TARA_SUBJECT_CLAIM_ATTRIBUTE_KEY)
-            && (StringUtil.isBlank(taraSubjectClaim) || !taraSubjectClaim.matches("^[eE]{2}\\d{11}"))) {
-            throw new UnacceptableMapperException("User has an attribute with the key 'tara_subject_claim', but it’s either blank or not in the expected format: " + taraSubjectClaim);
-        }
-
-        if (!userSession.getUser().getAttributes().containsKey(TARA_SUBJECT_CLAIM_ATTRIBUTE_KEY)) {
-            throw new AcceptableMapperException("User does not have an attribute with the key 'tara_subject_claim'.");
-        }
-
         logger.infof("Retrieved the 'tara_subject_claim' attribute from user session: %s", taraSubjectClaim);
-        return taraSubjectClaim.substring(2);
+        return parsePicFromTaraSubClaim(taraSubjectClaim);
     }
 
     String retrieveInstitutionId() throws AcceptableMapperException, UnacceptableMapperException {
@@ -160,6 +148,9 @@ class ClaimsFromTolkevaravApiTokenEnricher {
     String generateAccessToken() {
         var realm = keycloakSession.getContext().getRealm();
         var selfAuthenticationClient = keycloakSession.clients().getClientByClientId(realm, configuration.selfAuthenticationClientId());
+        var authSession = new AuthenticationSessionManager(keycloakSession)
+            .createAuthenticationSession(realm, false)
+            .createAuthenticationSession(selfAuthenticationClient);
         var connection = keycloakSession.getContext().getConnection();
         var serviceAccount = keycloakSession.users().getServiceAccount(selfAuthenticationClient);
         var eventBuilder = new EventBuilder(realm, keycloakSession, connection);
@@ -173,6 +164,9 @@ class ClaimsFromTolkevaravApiTokenEnricher {
             null,
             null
         );
+        var selfAuthenticationClientSessionContext = TokenManager.attachAuthenticationSession(
+            keycloakSession, serviceAccountSession, authSession
+        );
 
         return new TokenManager()
             .responseBuilder(
@@ -181,7 +175,7 @@ class ClaimsFromTolkevaravApiTokenEnricher {
                 eventBuilder,
                 keycloakSession,
                 serviceAccountSession,
-                clientSessionContext)
+                selfAuthenticationClientSessionContext)
             .generateAccessToken()
             .build()
             .getToken();

@@ -10,36 +10,39 @@ import static org.assertj.core.api.InstanceOfAssertFactories.*;
 
 public class ClaimsAssertions {
     static Consumer<Map<String, Object>> containsStandardAndCustomAccessTokenClaims(TestIdentity identity) {
-        return containsExpectedClaimsGiven(identity, EXPECTED_STANDARD_ACCESS_TOKEN_CLAIMS);
+        return containsGivenClaimsWithFullTolkevarav(identity, EXPECTED_STANDARD_ACCESS_TOKEN_CLAIMS);
     }
 
     static Consumer<Map<String, Object>> containsStandardAndCustomIdTokenClaims(TestIdentity identity) {
-        return containsExpectedClaimsGiven(identity, EXPECTED_STANDARD_ID_TOKEN_CLAIMS);
+        return containsGivenClaimsWithFullTolkevarav(identity, EXPECTED_STANDARD_ID_TOKEN_CLAIMS);
     }
 
     static Consumer<Map<String, Object>> containsStandardAndCustomUserinfoClaims(TestIdentity identity) {
-        return containsExpectedClaimsGiven(identity, EXPECTED_STANDARD_USERINFO_CLAIMS);
+        return containsGivenClaimsWithFullTolkevarav(identity, EXPECTED_STANDARD_USERINFO_CLAIMS);
     }
 
-    static void containsStandardAccessTokenClaimsNotCustom(Map<String, Object> map) {
-        containsExpectedClaimsNotCustomGiven(map, EXPECTED_STANDARD_ACCESS_TOKEN_CLAIMS);
+    static Consumer<Map<String, Object>> containsStandardAccessTokenClaimsAndPic(TestIdentity identity) {
+        return containsGivenClaimsWithPicOnly(EXPECTED_STANDARD_ACCESS_TOKEN_CLAIMS, identity);
     }
 
-    static void containsStandardIdTokenClaimsNotCustom(Map<String, Object> map) {
-        containsExpectedClaimsNotCustomGiven(map, EXPECTED_STANDARD_ID_TOKEN_CLAIMS);
+    static Consumer<Map<String, Object>> containsStandardIdTokenClaimsAndPic(TestIdentity identity) {
+        return containsGivenClaimsWithPicOnly(EXPECTED_STANDARD_ID_TOKEN_CLAIMS, identity);
     }
 
-    static void containsStandardUserinfoClaimsNotCustom(Map<String, Object> map) {
-        containsExpectedClaimsNotCustomGiven(map, EXPECTED_STANDARD_USERINFO_CLAIMS);
+    static Consumer<Map<String, Object>> containsStandardUserinfoClaimsAndPic(TestIdentity identity) {
+        return containsGivenClaimsWithPicOnly(EXPECTED_STANDARD_USERINFO_CLAIMS, identity);
     }
 
-    private static void containsExpectedClaimsNotCustomGiven(Map<String, Object> map, String... expectedNonCustomClaims) {
-        assertThat(map)
-            .containsKeys(expectedNonCustomClaims)
-            .doesNotContainKey(CUSTOM_CLAIMS_KEY);
+    private static Consumer<Map<String, Object>> containsGivenClaimsWithPicOnly(String[] expectedClaims, TestIdentity identity) {
+        return (map) -> assertThat(map)
+            .containsKeys(expectedClaims)
+            .extractingByKey(CUSTOM_CLAIMS_KEY, MAP)
+            .containsOnlyKeys(PERSONAL_IDENTIFICATION_CODE_KEY)
+            .extractingByKey(PERSONAL_IDENTIFICATION_CODE_KEY, STRING)
+            .isEqualTo(identity.getPersonalIdentificationCode());
     }
 
-    private static Consumer<Map<String, Object>> containsExpectedClaimsGiven(TestIdentity identity, String... expectedNonCustomClaims) {
+    private static Consumer<Map<String, Object>> containsGivenClaimsWithFullTolkevarav(TestIdentity identity, String... expectedNonCustomClaims) {
         return map -> assertThat(map)
             .containsKeys(expectedNonCustomClaims)
             .extractingByKey(CUSTOM_CLAIMS_KEY)
@@ -103,8 +106,15 @@ public class ClaimsAssertions {
             .asInstanceOf(MAP)
             // .extracting(Util::convertToMap, as(map(String.class, String.class)))
             .satisfies(
-                (institution) -> assertThat(institution).extractingByKey(INSTITUTION_ID.getName()).isEqualTo(INSTITUTION_ID.getValue()),
+                (institution) -> assertThat(institution).extractingByKey(SUCCESSFUL_RESPONSE_INSTITUTION_ID.getName()).isEqualTo(SUCCESSFUL_RESPONSE_INSTITUTION_ID.getValue()),
                 (institution) -> assertThat(institution).extractingByKey(INSTITUTION_NAME.getName()).isEqualTo(INSTITUTION_NAME.getValue())
             );
+    }
+
+    static void isUnsuccessfulResponseExceptionWithStatus500(Throwable object) {
+        assertThat(object)
+            .asInstanceOf(type(UnsuccessfulResponseException.class))
+            .extracting(UnsuccessfulResponseException::getStatusCode)
+            .isEqualTo(500);
     }
 }

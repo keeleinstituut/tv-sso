@@ -302,12 +302,8 @@
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "secret": "**********",
-      "redirectUris": [
-        "/*"
-      ],
-      "webOrigins": [
-        "/*"
-      ],
+      "redirectUris": [],
+      "webOrigins": [],
       "notBefore": 0,
       "bearerOnly": false,
       "consentRequired": false,
@@ -322,26 +318,16 @@
         "oidc.ciba.grant.enabled": "false",
         "client.secret.creation.time": "1681745199",
         "backchannel.logout.session.required": "true",
-        "post.logout.redirect.uris": "+",
+        "post.logout.redirect.uris": "",
+        "display.on.consent.screen": "false",
         "oauth2.device.authorization.grant.enabled": "false",
         "backchannel.logout.revoke.offline.tokens": "false"
       },
       "authenticationFlowBindingOverrides": {},
       "fullScopeAllowed": true,
       "nodeReRegistrationTimeout": -1,
-      "defaultClientScopes": [
-        "web-origins",
-        "acr",
-        "profile",
-        "roles",
-        "email"
-      ],
-      "optionalClientScopes": [
-        "address",
-        "phone",
-        "offline_access",
-        "microprofile-jwt"
-      ]
+      "defaultClientScopes": [],
+      "optionalClientScopes": []
     },
     {
       "id": "cbbb1f8a-f93c-40c3-bd22-eae6bed7070f",
@@ -486,14 +472,32 @@
       "nodeReRegistrationTimeout": -1,
       "protocolMappers": [
         {
+          "id": "e8d97219-1f58-4b8c-9758-19eaf9016c90",
+          "name": "Parse PIC from `tara_subject_claim` attribute and place it in token claim `tolkevarav.personalIdentificationCode`.",
+          "protocol": "openid-connect",
+          "protocolMapper": "tara-sub-attribute-to-pic-claim-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "tolkevarav.personalIdentificationCode",
+            "abort-if-unexpected-error": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
           "id": "b2141c39-1f75-4c71-9d70-e10df7ce437b",
-          "name": "tolkevarav-dev-claims-mapper",
+          "name": "Query claims from mocked Tõlkevärav and place them in all tokens.",
           "protocol": "openid-connect",
           "protocolMapper": "claims-from-tolkevarav-api-mapper",
           "consentRequired": false,
           "config": {
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
             "client-id": "internal-service-account-client",
-            "claims-endpoint-url": "http://mock-tolkevarav:1080/api/jwt-claims"
+            "claims-endpoint-url": "http://mock-tolkevarav:1080/api/jwt-claims",
+            "abort-if-unexpected-error": "true"
           }
         }
       ],
