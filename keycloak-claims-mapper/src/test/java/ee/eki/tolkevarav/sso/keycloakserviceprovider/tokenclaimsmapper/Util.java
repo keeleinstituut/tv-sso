@@ -55,5 +55,4 @@ public class Util {
 
         return URIUtils.extractHost(thisUri).getHostName().equals(thatUri);
     }
-//
 }

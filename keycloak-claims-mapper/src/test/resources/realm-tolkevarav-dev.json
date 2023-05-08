@@ -472,20 +472,6 @@
       "nodeReRegistrationTimeout": -1,
       "protocolMappers": [
         {
-          "id": "e8d97219-1f58-4b8c-9758-19eaf9016c90",
-          "name": "Parse PIC from `tara_subject_claim` attribute and place it in token claim `tolkevarav.personalIdentificationCode`.",
-          "protocol": "openid-connect",
-          "protocolMapper": "tara-sub-attribute-to-pic-claim-mapper",
-          "consentRequired": false,
-          "config": {
-            "id.token.claim": "true",
-            "access.token.claim": "true",
-            "claim.name": "tolkevarav.personalIdentificationCode",
-            "abort-if-unexpected-error": "true",
-            "userinfo.token.claim": "true"
-          }
-        },
-        {
           "id": "b2141c39-1f75-4c71-9d70-e10df7ce437b",
           "name": "Query claims from mocked Tõlkevärav and place them in all tokens.",
           "protocol": "openid-connect",
@@ -1095,20 +1081,7 @@
       }
     }
   ],
-  "identityProviderMappers": [
-    {
-      "id": "d5628040-6e4b-4519-b7d9-606005fb97ee",
-      "name": "Save Tara’s \"subject\" claim as Keycloak custom user attribute \"tara_subject_claim\".",
-      "identityProviderAlias": "oidc",
-      "identityProviderMapper": "oidc-user-attribute-idp-mapper",
-      "config": {
-        "syncMode": "INHERIT",
-        "are.claim.values.regex": "false",
-        "claim": "sub",
-        "user.attribute": "tara_subject_claim"
-      }
-    }
-  ],
+  "identityProviderMappers": [],
   "components": {
     "org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy": [
       {

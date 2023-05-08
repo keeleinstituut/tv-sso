@@ -2,19 +2,11 @@ package ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.jboss.logging.Logger;
-import org.keycloak.authentication.AuthenticationProcessor;
-import org.keycloak.common.constants.ServiceAccountConstants;
 import org.keycloak.events.EventBuilder;
 import org.keycloak.models.*;
-import org.keycloak.protocol.oidc.OIDCLoginProtocol;
 import org.keycloak.protocol.oidc.TokenManager;
 import org.keycloak.representations.IDToken;
-import org.keycloak.services.Urls;
 import org.keycloak.services.managers.AuthenticationSessionManager;
-import org.keycloak.services.managers.UserSessionManager;
-import org.keycloak.services.util.DefaultClientSessionContext;
-import org.keycloak.sessions.AuthenticationSessionModel;
-import org.keycloak.sessions.RootAuthenticationSessionModel;
 import org.keycloak.utils.StringUtil;
 
 import java.io.IOException;
@@ -22,9 +14,9 @@ import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.time.Duration;
+import java.util.Map;
 
-import static ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper.TaraParser.TARA_SUBJECT_CLAIM_ATTRIBUTE_KEY;
-import static ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper.TaraParser.parsePicFromTaraSubClaim;
+import static ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper.PersonalIdentificationCodeParser.parseAssumingEePrefix;
 import static java.net.http.HttpResponse.BodyHandlers.ofString;
 
 class ClaimsFromTolkevaravApiTokenEnricher {
@@ -33,18 +25,15 @@ class ClaimsFromTolkevaravApiTokenEnricher {
     private final ConfigurationParameters configuration;
     private final KeycloakSession keycloakSession;
     private final UserSessionModel userSession;
-    private final ClientSessionContext clientSessionContext;
 
     private static final Logger logger = Logger.getLogger(ClaimsFromTolkevaravApiTokenEnricher.class);
 
     ClaimsFromTolkevaravApiTokenEnricher(ProtocolMapperModel mapperModel,
                                                 KeycloakSession keycloakSession,
-                                                UserSessionModel userSession,
-                                                ClientSessionContext clientSessionContext) {
+                                                UserSessionModel userSession) {
         this.configuration = ConfigurationParameters.fromModel(mapperModel);
         this.keycloakSession = keycloakSession;
         this.userSession = userSession;
-        this.clientSessionContext = clientSessionContext;
     }
 
     void enrichToken(IDToken token) throws AcceptableMapperException, UnacceptableMapperException, URISyntaxException, IOException, InterruptedException {
@@ -52,8 +41,14 @@ class ClaimsFromTolkevaravApiTokenEnricher {
             throw new UnacceptableMapperException("Mapper configuration is invalid: " + configuration);
         }
 
+        var personalIdentificationCode = retrievePersonalIdentificationCode();
+        token.getOtherClaims().put(
+            "tolkevarav",
+            Map.of("personalIdentificationCode", personalIdentificationCode)
+        );
+
         var claims = queryClaimsFromApi(
-            retrievePersonalIdentificationCode(),
+            personalIdentificationCode,
             retrieveInstitutionId(),
             generateAccessToken()
         );
@@ -99,9 +94,7 @@ class ClaimsFromTolkevaravApiTokenEnricher {
     }
 
     String retrievePersonalIdentificationCode() throws UnacceptableMapperException {
-        var taraSubjectClaim = userSession.getUser().getFirstAttribute(TARA_SUBJECT_CLAIM_ATTRIBUTE_KEY);
-        logger.infof("Retrieved the 'tara_subject_claim' attribute from user session: %s", taraSubjectClaim);
-        return parsePicFromTaraSubClaim(taraSubjectClaim);
+        return parseAssumingEePrefix(userSession.getUser().getUsername());
     }
 
     String retrieveInstitutionId() throws AcceptableMapperException, UnacceptableMapperException {

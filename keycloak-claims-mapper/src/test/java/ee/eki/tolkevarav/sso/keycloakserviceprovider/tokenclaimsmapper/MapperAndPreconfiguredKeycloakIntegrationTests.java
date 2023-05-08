@@ -44,7 +44,7 @@ class MapperAndPreconfiguredKeycloakIntegrationTests {
     private static final MockServerContainer MOCK_TOLKEVARAV_CONTAINER = new MockServerContainer(parse("mockserver/mockserver:5.15.0"))
         .withNetwork(CONTAINER_NETWORK)
         .withNetworkAliases("mock-tolkevarav")
-        .withStartupTimeout(ofSeconds(180));
+        .withStartupTimeout(ofSeconds(300));
 
     @Container
     private static final LocalKeycloakContainer KEYCLOAK_CONTAINER = new LocalKeycloakContainer()

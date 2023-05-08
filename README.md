@@ -128,48 +128,7 @@ How a Keycloak realm should be configured for the SSO to work as expected for a 
         ]
       }
       ```
-4. A mapper of type "Attribute Importer" should be attached to the identity provider created in step 1. 
-    * The mapper should be configured to save `sub` claim from the identity provider to the user attribute `tara_subject_claim`.
-    * An example of mapper configuration as a screenshot of Keycloak UI:
-      * ![](https://github.com/keeleinstituut/tv-sso/blob/github-media/attribute-importer-mapper.jpg)
-    * An example of mapper configuration as JSON:
-      ```json
-      {
-        "id": "aa6e39b7-49a7-417b-9666-0efa348f4edc",
-        "name": "Save Tara’s \"subject\" claim as Keycloak custom user attribute \"tara_subject_claim\"",
-        "identityProviderAlias": "oidc",
-        "identityProviderMapper": "oidc-user-attribute-idp-mapper",
-        "config": {
-          "syncMode": "INHERIT",
-          "are.claim.values.regex": "false",
-          "claim": "sub",
-          "user.attribute": "tara_subject_claim"
-        }
-      }      
-      ```
-5. A mapper of type "PIC from Tara attribute" should be attached to the public client created in step 1.
-    * The configuration field "Add to access token" should be`true`.
-    * The configuration field "Token Claim Name" should be set to `tolkevarav.personalIdentificationCode`.
-    * An example of mapper configuration as a screenshot of Keycloak UI:
-      * ![](https://github.com/keeleinstituut/tv-sso/blob/github-media/tara-attribute-mapper.jpg)
-    * An example of mapper configuration as JSON:  
-      ```json
-      {
-        "id": "e8d97219-1f58-4b8c-9758-19eaf9016c90",
-        "name": "Parse PIC from `tara_subject_claim` attribute and place it in token claim `tolkevarav.personalIdentificationCode`.",
-        "protocol": "openid-connect",
-        "protocolMapper": "tara-sub-attribute-to-pic-claim-mapper",
-        "consentRequired": false,
-        "config": {
-          "id.token.claim": "true",
-          "access.token.claim": "true",
-          "claim.name": "tolkevarav.personalIdentificationCode",
-          "abort-if-unexpected-error": "true",
-          "userinfo.token.claim": "true"
-        }
-      }    
-      ```
-6. An internal client should be created for sole purpose of generating service account access tokens.
+4. An internal client should be created for sole purpose of generating service account access tokens.
     * An example of client configuration as a screenshot of Keycloak UI:
       * ![](https://github.com/keeleinstituut/tv-sso/blob/github-media/internal-client.jpg)
     * An example of client configuration as JSON:
@@ -215,7 +174,7 @@ How a Keycloak realm should be configured for the SSO to work as expected for a 
         "optionalClientScopes": []
       }
       ``` 
-7. A mapper of type "Query Tõlkevärav API" should attached to the public client and configured such that:
+5. A mapper of type "Query Tõlkevärav API" should attached to the public client and configured such that:
     * The configuration field "Add to access token" is`true`.
     * The configuration field "Internal client ID" corresponds to the client created in step 6.
     * The configuration field "Claims endpoint URL" is set to the endpoint in Tõlkevärav API which returns JWT claims.

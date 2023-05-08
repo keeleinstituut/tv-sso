@@ -2,6 +2,7 @@ package ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper;
 
 import org.apache.hc.core5.net.URIAuthority;
 import org.mockserver.client.MockServerClient;
+import org.mockserver.configuration.ClientConfiguration;
 import org.mockserver.model.*;
 
 import java.util.stream.Collectors;
@@ -25,7 +26,12 @@ public class MockingTolkevaravHelper {
     private final MockServerClient client;
 
     public MockingTolkevaravHelper(URIAuthority mockTolevaravUriAuthority) {
-        this.client = new MockServerClient(mockTolevaravUriAuthority.getHostName(), mockTolevaravUriAuthority.getPort());
+        this.client = new MockServerClient(
+            ClientConfiguration.clientConfiguration().maxSocketTimeoutInMillis((long) (60 * 1000)),
+            mockTolevaravUriAuthority.getHostName(),
+            mockTolevaravUriAuthority.getPort()
+        );
+
         configure();
     }
 
