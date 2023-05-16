@@ -9,46 +9,50 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.*;
 
 public class ClaimsAssertions {
-    static Consumer<Map<String, Object>> containsStandardAndCustomAccessTokenClaims(TestIdentity identity) {
-        return containsGivenClaimsWithFullTolkevarav(identity, EXPECTED_STANDARD_ACCESS_TOKEN_CLAIMS);
+    static Consumer<Map<String, Object>> containsStandardAccessTokenClaimsAndInstitutionUserData(TestIdentity identity) {
+        return containsGivenClaimsWithInstitutionUserData(identity, EXPECTED_STANDARD_ACCESS_TOKEN_CLAIMS);
     }
 
-    static Consumer<Map<String, Object>> containsStandardAndCustomIdTokenClaims(TestIdentity identity) {
-        return containsGivenClaimsWithFullTolkevarav(identity, EXPECTED_STANDARD_ID_TOKEN_CLAIMS);
+    static Consumer<Map<String, Object>> containsStandardIdTokenClaimsAndInstitutionUserData(TestIdentity identity) {
+        return containsGivenClaimsWithInstitutionUserData(identity, EXPECTED_STANDARD_ID_TOKEN_CLAIMS);
     }
 
-    static Consumer<Map<String, Object>> containsStandardAndCustomUserinfoClaims(TestIdentity identity) {
-        return containsGivenClaimsWithFullTolkevarav(identity, EXPECTED_STANDARD_USERINFO_CLAIMS);
+    static Consumer<Map<String, Object>> containsStandardUserinfoClaimsAndInstitutionUserData(TestIdentity identity) {
+        return containsGivenClaimsWithInstitutionUserData(identity, EXPECTED_STANDARD_USERINFO_CLAIMS);
     }
 
-    static Consumer<Map<String, Object>> containsStandardAccessTokenClaimsAndPic(TestIdentity identity) {
-        return containsGivenClaimsWithPicOnly(EXPECTED_STANDARD_ACCESS_TOKEN_CLAIMS, identity);
+    static Consumer<Map<String, Object>> containsStandardAccessTokenClaimsAndUserData(TestIdentity identity) {
+        return containsGivenClaimsWithUserData(EXPECTED_STANDARD_ACCESS_TOKEN_CLAIMS, identity);
     }
 
-    static Consumer<Map<String, Object>> containsStandardIdTokenClaimsAndPic(TestIdentity identity) {
-        return containsGivenClaimsWithPicOnly(EXPECTED_STANDARD_ID_TOKEN_CLAIMS, identity);
+    static Consumer<Map<String, Object>> containsStandardIdTokenClaimsAndUserData(TestIdentity identity) {
+        return containsGivenClaimsWithUserData(EXPECTED_STANDARD_ID_TOKEN_CLAIMS, identity);
     }
 
-    static Consumer<Map<String, Object>> containsStandardUserinfoClaimsAndPic(TestIdentity identity) {
-        return containsGivenClaimsWithPicOnly(EXPECTED_STANDARD_USERINFO_CLAIMS, identity);
+    static Consumer<Map<String, Object>> containsStandardUserinfoClaimsAndUserData(TestIdentity identity) {
+        return containsGivenClaimsWithUserData(EXPECTED_STANDARD_USERINFO_CLAIMS, identity);
     }
 
-    private static Consumer<Map<String, Object>> containsGivenClaimsWithPicOnly(String[] expectedClaims, TestIdentity identity) {
+    private static Consumer<Map<String, Object>> containsGivenClaimsWithUserData(String[] expectedClaims, TestIdentity identity) {
         return (map) -> assertThat(map)
             .containsKeys(expectedClaims)
-            .extractingByKey(CUSTOM_CLAIMS_KEY, MAP)
-            .containsOnlyKeys(PERSONAL_IDENTIFICATION_CODE_KEY)
-            .extractingByKey(PERSONAL_IDENTIFICATION_CODE_KEY, STRING)
-            .isEqualTo(identity.getPersonalIdentificationCode());
+            .extractingByKey(CUSTOM_CLAIMS_KEY)
+            .isNotNull()
+            .asInstanceOf(map(String.class, Object.class))
+            .satisfies(
+                hasExpectedPersonalIdentificationCode(identity),
+                ClaimsAssertions::hasExpectedUserId,
+                ClaimsAssertions::hasExpectedForename,
+                ClaimsAssertions::hasExpectedSurname
+            );
     }
 
-    private static Consumer<Map<String, Object>> containsGivenClaimsWithFullTolkevarav(TestIdentity identity, String... expectedNonCustomClaims) {
+    private static Consumer<Map<String, Object>> containsGivenClaimsWithInstitutionUserData(TestIdentity identity, String... expectedNonCustomClaims) {
         return map -> assertThat(map)
             .containsKeys(expectedNonCustomClaims)
             .extractingByKey(CUSTOM_CLAIMS_KEY)
             .isNotNull()
-            .isInstanceOf(String.class)
-            .extracting(Util::convertToMap, as(map(String.class, Object.class)))
+            .asInstanceOf(map(String.class, Object.class))
             .satisfies(
                 hasExpectedPersonalIdentificationCode(identity),
                 ClaimsAssertions::hasExpectedUserId,

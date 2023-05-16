@@ -1,7 +1,7 @@
 package ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper;
 
-class UnacceptableMapperException extends Exception {
-    UnacceptableMapperException(String message) {
+class TokenEnrichmentException extends Exception {
+    TokenEnrichmentException(String message) {
         super(message);
     }
 }

@@ -206,7 +206,10 @@ Assuming Keycloak has been configured as it is expected to be, it should behave 
   * If the user’s institution is not yet selected, it has the following structure:
     ```json
     {
-      "personalIdentificationCode": ""
+      "personalIdentificationCode": "",
+      "userId": "",
+      "forename": "",
+      "surname": ""
     }
     ```
   * If the user’s institution has been selected, it has the following structure:

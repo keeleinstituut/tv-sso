@@ -74,27 +74,25 @@ class MapperAndPreconfiguredKeycloakIntegrationTests {
                 .parse(tokens.getAccessToken().getValue())
                 .getJWTClaimsSet()
                 .getClaims();
-            assertThat(accessTokenClaims).satisfies(containsStandardAndCustomAccessTokenClaims(IDENTITY_A));
+            assertThat(accessTokenClaims).satisfies(containsStandardAccessTokenClaimsAndInstitutionUserData(IDENTITY_A));
 
             var idTokenClaims = tokens.getIDToken().getJWTClaimsSet().getClaims();
-            assertThat(idTokenClaims).satisfies(containsStandardAndCustomIdTokenClaims(IDENTITY_A));
+            assertThat(idTokenClaims).satisfies(containsStandardIdTokenClaimsAndInstitutionUserData(IDENTITY_A));
 
             var refreshedAccessToken = authenticationPerformer.requestAccessTokenWithRefreshToken(tokens.getRefreshToken());
             var refreshedAccessTokenClaims = JWTParser.parse(refreshedAccessToken.getValue())
                 .getJWTClaimsSet()
                 .getClaims();
-            assertThat(refreshedAccessTokenClaims).satisfies(containsStandardAndCustomAccessTokenClaims(IDENTITY_A));
+            assertThat(refreshedAccessTokenClaims).satisfies(containsStandardAccessTokenClaimsAndInstitutionUserData(IDENTITY_A));
         }
     }
 
     @Test
-    void givenAuthorizationCodeFlow_tokensShouldContainPicAndTvApiNotQueried_whenInstitutionNotSelected()
+    void givenAuthorizationCodeFlow_tokensShouldContainJustUserData_whenInstitutionNotSelected()
         throws ParseException, IOException, java.text.ParseException, URISyntaxException, UnsuccessfulResponseException {
         try (var mockTaraContainer = buildMockTaraContainer(IDENTITY_B)) {
             mockTaraContainer.start();
             updateMockTaraUriInPerformer(mockTaraContainer);
-
-            var initialApiRequestsCount = authenticationPerformer.retrieveMockTvApiRequestsCount();
 
             var tokens = authenticationPerformer.performAuthorizationCodeFlow();
 
@@ -102,19 +100,16 @@ class MapperAndPreconfiguredKeycloakIntegrationTests {
                 .parse(tokens.getAccessToken().getValue())
                 .getJWTClaimsSet()
                 .getClaims();
-            assertThat(accessTokenClaims).satisfies(containsStandardAccessTokenClaimsAndPic(IDENTITY_B));
+            assertThat(accessTokenClaims).satisfies(containsStandardAccessTokenClaimsAndUserData(IDENTITY_B));
 
             var idTokenClaims = tokens.getIDToken().getJWTClaimsSet().getClaims();
-            assertThat(idTokenClaims).satisfies(containsStandardIdTokenClaimsAndPic(IDENTITY_B));
+            assertThat(idTokenClaims).satisfies(containsStandardIdTokenClaimsAndUserData(IDENTITY_B));
 
             var refreshedAccessToken = authenticationPerformer.requestAccessTokenWithRefreshToken(tokens.getRefreshToken());
             var refreshedAccessTokenClaims = JWTParser.parse(refreshedAccessToken.getValue())
                 .getJWTClaimsSet()
                 .getClaims();
-            assertThat(refreshedAccessTokenClaims).satisfies(containsStandardAccessTokenClaimsAndPic(IDENTITY_B));
-
-            var finalApiRequestsCount = authenticationPerformer.retrieveMockTvApiRequestsCount();
-            assertThat(finalApiRequestsCount).isEqualTo(initialApiRequestsCount);
+            assertThat(refreshedAccessTokenClaims).satisfies(containsStandardAccessTokenClaimsAndUserData(IDENTITY_B));
         }
     }
 
@@ -134,26 +129,20 @@ class MapperAndPreconfiguredKeycloakIntegrationTests {
                 .requestUserinfoWithAccessToken(accessToken)
                 .toJWTClaimsSet()
                 .getClaims();
-            assertThat(userinfoClaims).satisfies(containsStandardAndCustomUserinfoClaims(IDENTITY_C));
+            assertThat(userinfoClaims).satisfies(containsStandardUserinfoClaimsAndInstitutionUserData(IDENTITY_C));
         }
     }
 
     @Test
-    void givenQueryingUserinfoEndpoint_responseShouldContainPicAndTvApiNotQueried_whenInstitutionNotSelected()
+    void givenQueryingUserinfoEndpoint_responseShouldContainJustUserData_whenInstitutionNotSelected()
         throws ParseException, IOException, URISyntaxException, UnsuccessfulResponseException {
         try (var mockTaraContainer = buildMockTaraContainer(IDENTITY_D)) {
             mockTaraContainer.start();
             updateMockTaraUriInPerformer(mockTaraContainer);
 
-            var initialApiRequestsCount = authenticationPerformer.retrieveMockTvApiRequestsCount();
-
             var accessToken = authenticationPerformer.performAuthorizationCodeFlow().getAccessToken();
-
             var userinfoClaims = authenticationPerformer.requestUserinfoWithAccessToken(accessToken).toJSONObject();
-            assertThat(userinfoClaims).satisfies(containsStandardUserinfoClaimsAndPic(IDENTITY_D));
-
-            var finalApiRequestsCount = authenticationPerformer.retrieveMockTvApiRequestsCount();
-            assertThat(finalApiRequestsCount).isEqualTo(initialApiRequestsCount);
+            assertThat(userinfoClaims).satisfies(containsStandardUserinfoClaimsAndUserData(IDENTITY_D));
         }
     }
 
@@ -207,25 +196,6 @@ class MapperAndPreconfiguredKeycloakIntegrationTests {
 
             var finalApiRequestsCount = authenticationPerformer.retrieveMockTvApiRequestsCount();
             assertThat(finalApiRequestsCount).isGreaterThan(initialApiRequestsCount);
-        }
-    }
-
-    @Test
-    void givenAuthorizationCodeFlow_flowShouldFailWithoutQueryingTvApi_whenSelectedInstitutionIsBlank() throws IOException {
-        try (var mockTaraContainer = buildMockTaraContainer(IDENTITY_E)) {
-            mockTaraContainer.start();
-            updateMockTaraUriInPerformer(mockTaraContainer);
-
-            var initialApiRequestsCount = authenticationPerformer.retrieveMockTvApiRequestsCount();
-
-            assertThatThrownBy(() -> authenticationPerformer.performAuthorizationCodeFlow(
-                    new BasicNameValuePair(SELECTED_INSTITUTION_ID_HEADER_KEY, "")
-                ))
-                .satisfies(ClaimsAssertions::isUnsuccessfulResponseExceptionWithStatus500);
-
-            var finalApiRequestsCount = authenticationPerformer.retrieveMockTvApiRequestsCount();
-            assertThat(finalApiRequestsCount).isEqualTo(initialApiRequestsCount);
-
         }
     }
 

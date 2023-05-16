@@ -1,5 +1,7 @@
 package ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.client.utils.URIBuilder;
 import org.jboss.logging.Logger;
 import org.keycloak.events.EventBuilder;
@@ -7,6 +9,7 @@ import org.keycloak.models.*;
 import org.keycloak.protocol.oidc.TokenManager;
 import org.keycloak.representations.IDToken;
 import org.keycloak.services.managers.AuthenticationSessionManager;
+import org.keycloak.utils.JsonUtils;
 import org.keycloak.utils.StringUtil;
 
 import java.io.IOException;
@@ -36,42 +39,47 @@ class ClaimsFromTolkevaravApiTokenEnricher {
         this.userSession = userSession;
     }
 
-    void enrichToken(IDToken token) throws AcceptableMapperException, UnacceptableMapperException, URISyntaxException, IOException, InterruptedException {
+    void enrichToken(IDToken token) throws TokenEnrichmentException, URISyntaxException, IOException, InterruptedException {
         if (configuration.isInvalid()) {
-            throw new UnacceptableMapperException("Mapper configuration is invalid: " + configuration);
+            throw new TokenEnrichmentException("Mapper configuration is invalid: " + configuration);
         }
 
-        var personalIdentificationCode = retrievePersonalIdentificationCode();
-        token.getOtherClaims().put(
-            "tolkevarav",
-            Map.of("personalIdentificationCode", personalIdentificationCode)
-        );
-
-        var claims = queryClaimsFromApi(
-            personalIdentificationCode,
+        var claimsFromApi = queryClaimsFromApi(
+            retrievePersonalIdentificationCode(),
             retrieveInstitutionId(),
             generateAccessToken()
         );
 
-        logger.infof("Claims received from Tõlkevärav API: %s. Adding it to claims in token.", claims);
-        token.getOtherClaims().put("tolkevarav", claims);
+        logger.infof("Claims received from Tõlkevärav API: %s", claimsFromApi);
+
+        if (token.getOtherClaims().get("tolkevarav") instanceof Map<?, ?> existingClaims
+                && claimsFromApi.get("userId").equals(existingClaims.get("userId"))) {
+            //noinspection unchecked
+            ((Map<String, Object>) existingClaims).putAll(claimsFromApi);
+            logger.info("Merged claims from API into existing Tõlkevärav claims.");
+        } else {
+            token.getOtherClaims().put("tolkevarav", claimsFromApi);
+            logger.info("Tõlkevärav claims were set to what was received from API.");
+        }
     }
 
-    String queryClaimsFromApi(String personalIdentificationCode, String institutionId, String accessToken)
-            throws URISyntaxException, IOException, InterruptedException, UnacceptableMapperException {
+    Map<String, Object> queryClaimsFromApi(String personalIdentificationCode, String institutionId, String accessToken)
+            throws URISyntaxException, IOException, InterruptedException, TokenEnrichmentException {
         logger.debugf("Querying Tõlkevärav API claims endpoint (%s) for claims with PIC=%s and institutionID=%s",
             configuration.claimsEndpointURL(),
             personalIdentificationCode,
             institutionId
         );
 
-        var uri = new URIBuilder(configuration.claimsEndpointURL())
-            .addParameter("personal_identification_code", personalIdentificationCode)
-            .addParameter("selected_institution_id", institutionId)
-            .build();
+        var uriBuilder = new URIBuilder(configuration.claimsEndpointURL())
+            .addParameter("personal_identification_code", personalIdentificationCode);
+
+        if (institutionId != null) {
+            uriBuilder.addParameter("institution_id", institutionId);
+        }
 
         var request = HttpRequest
-            .newBuilder(uri)
+            .newBuilder(uriBuilder.build())
             .GET()
             .header("Accept", "application/json")
             .header("Authorization", "Bearer " + accessToken)
@@ -83,51 +91,39 @@ class ClaimsFromTolkevaravApiTokenEnricher {
             .send(request, ofString());
 
         if (response.statusCode() != 200) {
-            throw new UnacceptableMapperException("Response from Tõlkevärav API was not status 200: " + response);
+            throw new TokenEnrichmentException("Response from Tõlkevärav API was not status 200: " + response);
         }
 
         if (StringUtil.isBlank(response.body())) {
-            throw new UnacceptableMapperException("Response from Tõlkevärav API was blank: " + response);
+            throw new TokenEnrichmentException("Response from Tõlkevärav API was blank: " + response);
         }
 
-        return response.body();
+        return new ObjectMapper().readValue(response.body(), new TypeReference<>() {});
     }
 
-    String retrievePersonalIdentificationCode() throws UnacceptableMapperException {
+    String retrievePersonalIdentificationCode() throws TokenEnrichmentException {
         return parseAssumingEePrefix(userSession.getUser().getUsername());
     }
 
-    String retrieveInstitutionId() throws AcceptableMapperException, UnacceptableMapperException {
+    String retrieveInstitutionId() {
         var key = buildInstitutionIdSessionNoteKey();
-
         var institutionIdFromSession = userSession.getNote(key);
         var institutionIdFromHeaders = keycloakSession.getContext()
             .getRequestHeaders()
             .getHeaderString(SELECTED_INSTITUTION_ID_HEADER_KEY);
 
-        if (userSession.getNotes().containsKey(key) && StringUtil.isBlank(institutionIdFromSession)) {
-            throw new UnacceptableMapperException("Institution ID was present in the session, but was blank.");
-        }
-
-        if (keycloakSession.getContext().getRequestHeaders().getRequestHeaders().containsKey(SELECTED_INSTITUTION_ID_HEADER_KEY)
-            && StringUtil.isBlank(institutionIdFromHeaders)) {
-            throw new UnacceptableMapperException("Institution ID was present in the header, but was blank.");
-        }
-
-
-        if (!keycloakSession.getContext().getRequestHeaders().getRequestHeaders().containsKey(SELECTED_INSTITUTION_ID_HEADER_KEY)
-            && !userSession.getNotes().containsKey(key)) {
-            throw new AcceptableMapperException("Institution ID is missing in both session and request headers.");
-        }
-
-        if (StringUtil.isBlank(institutionIdFromHeaders)) {
-            logger.infof("Reading institution ID from user session since it’s not in request headers: %s.", institutionIdFromSession);
-            return institutionIdFromSession;
-        } else {
+        if (StringUtil.isNotBlank(institutionIdFromHeaders)) {
             logger.infof("Reading institution ID from request headers and saving it in session: %s.", institutionIdFromHeaders);
             userSession.setNote(key, institutionIdFromHeaders);
             return institutionIdFromHeaders;
         }
+
+        if (StringUtil.isNotBlank(institutionIdFromSession)) {
+            logger.infof("Reading institution ID from user session since it’s not in request headers: %s.", institutionIdFromSession);
+            return institutionIdFromSession;
+        }
+
+        return null;
     }
 
     String buildInstitutionIdSessionNoteKey() {

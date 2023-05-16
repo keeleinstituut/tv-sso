@@ -5,19 +5,14 @@ import org.mockserver.client.MockServerClient;
 import org.mockserver.configuration.ClientConfiguration;
 import org.mockserver.model.*;
 
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import static ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper.ExpectedValues.*;
 import static ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper.ExpectedValues.TestIdentity.values;
-import static ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper.Util.convertCamelCaseToSnakeCase;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.mockserver.model.Header.header;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.notFoundResponse;
 import static org.mockserver.model.HttpResponse.response;
 import static org.mockserver.model.MediaType.APPLICATION_JSON;
-import static org.mockserver.model.NottableString.not;
 import static org.mockserver.model.NottableString.string;
 import static org.mockserver.model.Parameter.param;
 import static org.mockserver.model.Parameters.parameters;
@@ -36,6 +31,16 @@ public class MockingTolkevaravHelper {
     }
 
     public void configure() {
+        addRuleToMockTolkevaravApiServer(
+                parameters(
+                        buildInstitutionIdParameterMatcher(string(EMPTY_RESPONSE_INSTITUTION_ID.getValue()))
+                ),
+                response()
+                        .withContentType(APPLICATION_JSON)
+                        .withBody("")
+                        .withDelay(SECONDS, 10)
+        );
+
         for (ExpectedValues.TestIdentity identity : values()) {
             addRuleToMockTolkevaravApiServer(
                 parameters(
@@ -48,15 +53,16 @@ public class MockingTolkevaravHelper {
             );
         }
 
-        addRuleToMockTolkevaravApiServer(
-            parameters(
-                buildInstitutionIdParameterMatcher(string(EMPTY_RESPONSE_INSTITUTION_ID.getValue()))
-            ),
-            response()
-                .withContentType(APPLICATION_JSON)
-                .withBody("")
-                .withDelay(SECONDS, 10)
-        );
+        for (ExpectedValues.TestIdentity identity : values()) {
+            addRuleToMockTolkevaravApiServer(
+                    parameters(
+                            createIdentityPicParameterMatcher(identity)
+                    ),
+                    response()
+                            .withContentType(APPLICATION_JSON)
+                            .withBody(expectedTolkevaravApiResponseJson(identity))
+            );
+        }
 
         addRuleToMockTolkevaravApiServer(parameters(), notFoundResponse());
     }
@@ -80,10 +86,10 @@ public class MockingTolkevaravHelper {
     }
 
     private Parameter buildInstitutionIdParameterMatcher(NottableString nottableString) {
-        return param(string(convertCamelCaseToSnakeCase(SELECTED_INSTITUTION_ID_KEY)), nottableString);
+        return param(string("institution_id"), nottableString);
     }
 
     private Parameter createIdentityPicParameterMatcher(TestIdentity identity) {
-        return param(convertCamelCaseToSnakeCase(PERSONAL_IDENTIFICATION_CODE_KEY), identity.getPersonalIdentificationCode());
+        return param("personal_identification_code", identity.getPersonalIdentificationCode());
     }
 }

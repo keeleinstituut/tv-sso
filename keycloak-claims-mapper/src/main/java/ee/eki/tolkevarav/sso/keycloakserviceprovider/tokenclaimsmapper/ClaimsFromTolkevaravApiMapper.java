@@ -85,9 +85,7 @@ public class ClaimsFromTolkevaravApiMapper extends AbstractOIDCProtocolMapper
                 keycloakSession,
                 userSession
             ).enrichToken(token);
-        } catch (AcceptableMapperException exception) {
-            logger.info("Cancelled enriching of token because of an acceptable scenario.", exception);
-        } catch (UnacceptableMapperException | URISyntaxException | IOException exception) {
+        } catch (TokenEnrichmentException | URISyntaxException | IOException exception) {
             logger.error("Cancelled enriching of token because of an unacceptable/unexpected scenario.", exception);
 
             if (isAbortRequiredOnUnexpectedErrors(mapperModel)) {

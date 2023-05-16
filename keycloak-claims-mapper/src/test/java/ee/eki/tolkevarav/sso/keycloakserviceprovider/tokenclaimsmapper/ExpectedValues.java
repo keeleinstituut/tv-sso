@@ -19,7 +19,6 @@ public class ExpectedValues {
     final static NameValuePair INSTITUTION_USER_ID = of("institutionUserId", "ea1ccdbd-bd61-4a95-9527-a3bac503fc9a");
     final static NameValuePair FORENAME = of("forename", "John");
     final static NameValuePair SURNAME = of("surname", "Smith");
-    final static String SELECTED_INSTITUTION_ID_KEY = "selectedInstitutionId";
     final static String INSTITUTION_KEY = "selectedInstitution";
     final static NameValuePair SUCCESSFUL_RESPONSE_INSTITUTION_ID = of("id", "5730fdc0-782f-45c9-90e6-2d5a177ddc06");
     final static NameValuePair EMPTY_RESPONSE_INSTITUTION_ID = of("id", "71912ab0-d6e8-4c7b-9427-fe1faa537ef8");

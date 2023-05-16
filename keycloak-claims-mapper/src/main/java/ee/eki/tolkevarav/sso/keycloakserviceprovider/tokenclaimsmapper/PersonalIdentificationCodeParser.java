@@ -5,9 +5,9 @@ import org.keycloak.utils.StringUtil;
 public class PersonalIdentificationCodeParser {
     private PersonalIdentificationCodeParser() {}
 
-    public static String parseAssumingEePrefix(String username) throws UnacceptableMapperException {
+    public static String parseAssumingEePrefix(String username) throws TokenEnrichmentException {
         if (StringUtil.isBlank(username) || !username.matches("^[eE]{2}\\d{11}")) {
-            throw new UnacceptableMapperException("Attempted to parse personal identification code, " +
+            throw new TokenEnrichmentException("Attempted to parse personal identification code, " +
                 "but it was either blank or not in an expected format: " + username);
         }
 

@@ -12,14 +12,8 @@ import org.testcontainers.containers.Container;
 import java.net.URI;
 import java.util.Map;
 
-import static com.google.common.base.CaseFormat.LOWER_CAMEL;
-import static com.google.common.base.CaseFormat.LOWER_UNDERSCORE;
 
 public class Util {
-    static String convertCamelCaseToSnakeCase(String camelCaseString) {
-        return LOWER_CAMEL.to(LOWER_UNDERSCORE, camelCaseString);
-    }
-
     static Map<String, Object> convertToMap(Object input)  {
         try {
             return new ObjectMapper().readValue(input.toString(), new TypeReference<>() {});
