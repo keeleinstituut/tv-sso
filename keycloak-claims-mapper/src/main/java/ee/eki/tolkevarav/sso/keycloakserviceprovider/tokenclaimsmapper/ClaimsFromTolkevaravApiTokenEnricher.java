@@ -9,7 +9,6 @@ import org.keycloak.models.*;
 import org.keycloak.protocol.oidc.TokenManager;
 import org.keycloak.representations.IDToken;
 import org.keycloak.services.managers.AuthenticationSessionManager;
-import org.keycloak.utils.JsonUtils;
 import org.keycloak.utils.StringUtil;
 
 import java.io.IOException;
@@ -52,7 +51,10 @@ class ClaimsFromTolkevaravApiTokenEnricher {
 
         logger.infof("Claims received from Tõlkevärav API: %s", claimsFromApi);
 
-        if (token.getOtherClaims().get("tolkevarav") instanceof Map<?, ?> existingClaims
+        if (claimsFromApi.isEmpty()) {
+            token.getOtherClaims().put("tolkevarav", Map.of());
+            logger.info("Tõlkevärav claims were set to an empty object.");
+        } else if (token.getOtherClaims().get("tolkevarav") instanceof Map<?, ?> existingClaims
                 && claimsFromApi.get("userId").equals(existingClaims.get("userId"))) {
             //noinspection unchecked
             ((Map<String, Object>) existingClaims).putAll(claimsFromApi);
@@ -90,12 +92,17 @@ class ClaimsFromTolkevaravApiTokenEnricher {
             .build()
             .send(request, ofString());
 
+        if (response.statusCode() == 404) {
+            logger.info("Response from API was 404, indicating no such user exists.");
+            return Map.of();
+        }
+
         if (response.statusCode() != 200) {
-            throw new TokenEnrichmentException("Response from Tõlkevärav API was not status 200: " + response);
+            throw new TokenEnrichmentException("Response status from Tõlkevärav API was neither 200 or 404: " + response);
         }
 
         if (StringUtil.isBlank(response.body())) {
-            throw new TokenEnrichmentException("Response from Tõlkevärav API was blank: " + response);
+            throw new TokenEnrichmentException("Response from Tõlkevärav API was status 200, but body blank: " + response);
         }
 
         return new ObjectMapper().readValue(response.body(), new TypeReference<>() {});

@@ -79,10 +79,11 @@ How a Keycloak realm should be configured for the SSO to work as expected for a 
        ]
      }
      ```
-3. The "browser" authentication flow should be modified such that "forms" step is disabled.
+3. The "browser" authentication flow should be modified such that "forms" step is disabled and the "Identity Provider Redirector" step’s default identity provider is set to the identity provider created in step 1.
     * An example of the modified default "browser" flow as a screenshot of Keycloak UI: 
       * ![](https://github.com/keeleinstituut/tv-sso/blob/github-media/browser-authentication-flow.jpg)
-    * An example of the modified default "browser" flow as JSON:
+      * ![](https://github.com/keeleinstituut/tv-sso/blob/github-media/identity-provider-redirector.png.jpg)
+    * An example of the modified default "browser" flow as "authenticator config" as JSON:
       ```json
       {
         "id": "e788c28f-53f9-4561-a37f-c8c9c1540745",
@@ -126,6 +127,15 @@ How a Keycloak realm should be configured for the SSO to work as expected for a 
             "userSetupAllowed": false
           }
         ]
+      }
+      ```
+      ```json
+      {
+        "id": "0e031533-a156-4cca-b3c4-b8bbaf876947",
+        "alias": "Redirect to \"oidc\" identity provider",
+        "config": {
+          "defaultProvider": "oidc"
+        }
       }
       ```
 4. An internal client should be created for sole purpose of generating service account access tokens.

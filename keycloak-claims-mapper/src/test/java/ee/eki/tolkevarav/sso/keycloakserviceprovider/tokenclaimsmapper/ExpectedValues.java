@@ -20,8 +20,7 @@ public class ExpectedValues {
     final static NameValuePair FORENAME = of("forename", "John");
     final static NameValuePair SURNAME = of("surname", "Smith");
     final static String INSTITUTION_KEY = "selectedInstitution";
-    final static NameValuePair SUCCESSFUL_RESPONSE_INSTITUTION_ID = of("id", "5730fdc0-782f-45c9-90e6-2d5a177ddc06");
-    final static NameValuePair EMPTY_RESPONSE_INSTITUTION_ID = of("id", "71912ab0-d6e8-4c7b-9427-fe1faa537ef8");
+    final static NameValuePair EXAMPLE_INSTITUTION_ID = of("id", "5730fdc0-782f-45c9-90e6-2d5a177ddc06");
     final static NameValuePair INSTITUTION_NAME = of("name", "Smith Ltd.");
     final static String PRIVILEGES_KEY = "privileges";
     final static List<String> PRIVILEGES = List.of("ADD_USER", "EDIT_USER");
@@ -31,35 +30,45 @@ public class ExpectedValues {
         return new BasicNameValuePair(name, value);
     }
 
-    static Map<String, Object> expectedTolkevaravApiResponse(TestIdentity identity) {
-        return Map.of(
-            PERSONAL_IDENTIFICATION_CODE_KEY, identity.getPersonalIdentificationCode(),
-            USER_ID.getName(), USER_ID.getValue(),
-            INSTITUTION_USER_ID.getName(), INSTITUTION_USER_ID.getValue(),
-            FORENAME.getName(), FORENAME.getValue(),
-            SURNAME.getName(), SURNAME.getValue(),
-            PRIVILEGES_KEY, PRIVILEGES,
-            INSTITUTION_KEY, Map.of(
-                SUCCESSFUL_RESPONSE_INSTITUTION_ID.getName(), SUCCESSFUL_RESPONSE_INSTITUTION_ID.getValue(),
-                INSTITUTION_NAME.getName(), INSTITUTION_NAME.getValue()
-            )
-        );
+    static String expectedTolkevaravApiInstitutionUserResponseJson(TestIdentity identity) {
+        try {
+            return new ObjectMapper().writeValueAsString(Map.of(
+                    PERSONAL_IDENTIFICATION_CODE_KEY, identity.getPersonalIdentificationCode(),
+                    USER_ID.getName(), USER_ID.getValue(),
+                    INSTITUTION_USER_ID.getName(), INSTITUTION_USER_ID.getValue(),
+                    FORENAME.getName(), FORENAME.getValue(),
+                    SURNAME.getName(), SURNAME.getValue(),
+                    PRIVILEGES_KEY, PRIVILEGES,
+                    INSTITUTION_KEY, Map.of(
+                            EXAMPLE_INSTITUTION_ID.getName(), EXAMPLE_INSTITUTION_ID.getValue(),
+                            INSTITUTION_NAME.getName(), INSTITUTION_NAME.getValue()
+                    )
+            ));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    static String expectedTolkevaravApiResponseJson(TestIdentity identity) {
+    static String expectedTolkevaravApiUserResponseJson(TestIdentity identity) {
         try {
-            return new ObjectMapper().writeValueAsString(expectedTolkevaravApiResponse(identity));
+            return new ObjectMapper().writeValueAsString(Map.of(
+                    PERSONAL_IDENTIFICATION_CODE_KEY, identity.getPersonalIdentificationCode(),
+                    USER_ID.getName(), USER_ID.getValue(),
+                    FORENAME.getName(), FORENAME.getValue(),
+                    SURNAME.getName(), SURNAME.getValue()
+            ));
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }
 
     enum TestIdentity {
-        IDENTITY_A("EE49311255780"),
-        IDENTITY_B("EE50301024958"),
-        IDENTITY_C("EE36010273790"),
-        IDENTITY_D("EE62207160033"),
-        IDENTITY_E("EE43503304242");
+        SUCCESSFUL_INSTITUTION_USER_RESPONSE_IDENTITY("EE49311255780"),
+        SUCCESSFUL_USER_RESPONSE_IDENTITY("EE50301024958"),
+        DELAYED_RESPONSE_IDENTITY("EE36010273790"),
+        EMPTY_RESPONSE_IDENTITY("EE62207160033"),
+        FORBIDDEN_RESPONSE_IDENTITY("EE43503304242"),
+        NOT_FOUND_RESPONSE_IDENTITY("EE44208104267");
 
         private final String personalIdentificationCode;
         private final String taraSubjectClaim;

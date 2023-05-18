@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import static ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper.ExpectedValues.*;
-import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.*;
 
@@ -31,6 +30,27 @@ public class ClaimsAssertions {
 
     static Consumer<Map<String, Object>> containsStandardUserinfoClaimsAndUserData(TestIdentity identity) {
         return containsGivenClaimsWithUserData(EXPECTED_STANDARD_USERINFO_CLAIMS, identity);
+    }
+
+    static Consumer<Map<String, Object>> containsStandardAccessTokenClaimsAndEmptyTolkevaravClaims() {
+        return containsGivenClaimsWithEmptyTolkevaravClaims(EXPECTED_STANDARD_ACCESS_TOKEN_CLAIMS);
+    }
+
+    static Consumer<Map<String, Object>> containsStandardIdTokenClaimsAndEmptyTolkevaravClaims() {
+        return containsGivenClaimsWithEmptyTolkevaravClaims(EXPECTED_STANDARD_ID_TOKEN_CLAIMS);
+    }
+
+    static Consumer<Map<String, Object>> containsStandardUserinfoClaimsAndEmptyTolkevaravClaims() {
+        return containsGivenClaimsWithEmptyTolkevaravClaims(EXPECTED_STANDARD_USERINFO_CLAIMS);
+    }
+
+    private static Consumer<Map<String, Object>> containsGivenClaimsWithEmptyTolkevaravClaims(String[] expectedClaims) {
+        return (map) -> assertThat(map)
+                .containsKeys(expectedClaims)
+                .extractingByKey(CUSTOM_CLAIMS_KEY)
+                .isNotNull()
+                .asInstanceOf(MAP)
+                .isEmpty();
     }
 
     private static Consumer<Map<String, Object>> containsGivenClaimsWithUserData(String[] expectedClaims, TestIdentity identity) {
@@ -110,7 +130,7 @@ public class ClaimsAssertions {
             .asInstanceOf(MAP)
             // .extracting(Util::convertToMap, as(map(String.class, String.class)))
             .satisfies(
-                (institution) -> assertThat(institution).extractingByKey(SUCCESSFUL_RESPONSE_INSTITUTION_ID.getName()).isEqualTo(SUCCESSFUL_RESPONSE_INSTITUTION_ID.getValue()),
+                (institution) -> assertThat(institution).extractingByKey(EXAMPLE_INSTITUTION_ID.getName()).isEqualTo(EXAMPLE_INSTITUTION_ID.getValue()),
                 (institution) -> assertThat(institution).extractingByKey(INSTITUTION_NAME.getName()).isEqualTo(INSTITUTION_NAME.getValue())
             );
     }

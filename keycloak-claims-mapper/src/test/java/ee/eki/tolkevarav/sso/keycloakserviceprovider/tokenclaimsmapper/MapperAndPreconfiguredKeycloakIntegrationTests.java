@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.oauth2.sdk.*;
-import ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper.ExpectedValues.TestIdentity;
 import org.apache.http.message.BasicNameValuePair;
 
 import static ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper.ClaimsAssertions.*;
@@ -61,36 +60,39 @@ class MapperAndPreconfiguredKeycloakIntegrationTests {
     );
 
     @Test
-    void givenAuthorizationCodeFlow_tokensShouldContainCustomClaims_whenInstitutionIsSelected()
+    void tolkevaravClaimsShouldContainExpectedInstitutionUserData_whenInstitutionIsSelected()
         throws ParseException, IOException, java.text.ParseException, URISyntaxException, UnsuccessfulResponseException {
-        try (var mockTaraContainer = buildMockTaraContainer(IDENTITY_A)) {
+        try (var mockTaraContainer = buildMockTaraContainer(SUCCESSFUL_INSTITUTION_USER_RESPONSE_IDENTITY)) {
             mockTaraContainer.start();
             updateMockTaraUriInPerformer(mockTaraContainer);
             var tokens = authenticationPerformer.performAuthorizationCodeFlow(
-                new BasicNameValuePair(SELECTED_INSTITUTION_ID_HEADER_KEY, SUCCESSFUL_RESPONSE_INSTITUTION_ID.getValue())
+                new BasicNameValuePair(SELECTED_INSTITUTION_ID_HEADER_KEY, EXAMPLE_INSTITUTION_ID.getValue())
             );
 
             var accessTokenClaims = JWTParser
                 .parse(tokens.getAccessToken().getValue())
                 .getJWTClaimsSet()
                 .getClaims();
-            assertThat(accessTokenClaims).satisfies(containsStandardAccessTokenClaimsAndInstitutionUserData(IDENTITY_A));
+            assertThat(accessTokenClaims).satisfies(containsStandardAccessTokenClaimsAndInstitutionUserData(SUCCESSFUL_INSTITUTION_USER_RESPONSE_IDENTITY));
 
             var idTokenClaims = tokens.getIDToken().getJWTClaimsSet().getClaims();
-            assertThat(idTokenClaims).satisfies(containsStandardIdTokenClaimsAndInstitutionUserData(IDENTITY_A));
+            assertThat(idTokenClaims).satisfies(containsStandardIdTokenClaimsAndInstitutionUserData(SUCCESSFUL_INSTITUTION_USER_RESPONSE_IDENTITY));
 
             var refreshedAccessToken = authenticationPerformer.requestAccessTokenWithRefreshToken(tokens.getRefreshToken());
             var refreshedAccessTokenClaims = JWTParser.parse(refreshedAccessToken.getValue())
                 .getJWTClaimsSet()
                 .getClaims();
-            assertThat(refreshedAccessTokenClaims).satisfies(containsStandardAccessTokenClaimsAndInstitutionUserData(IDENTITY_A));
+            assertThat(refreshedAccessTokenClaims).satisfies(containsStandardAccessTokenClaimsAndInstitutionUserData(SUCCESSFUL_INSTITUTION_USER_RESPONSE_IDENTITY));
+
+            var userinfoClaims = authenticationPerformer.requestUserinfoWithAccessToken(tokens.getAccessToken()).toJSONObject();
+            assertThat(userinfoClaims).satisfies(containsStandardUserinfoClaimsAndInstitutionUserData(SUCCESSFUL_INSTITUTION_USER_RESPONSE_IDENTITY));
         }
     }
 
     @Test
-    void givenAuthorizationCodeFlow_tokensShouldContainJustUserData_whenInstitutionNotSelected()
+    void tolkevaravClaimsShouldContainExpectedUserData_whenInstitutionNotSelected()
         throws ParseException, IOException, java.text.ParseException, URISyntaxException, UnsuccessfulResponseException {
-        try (var mockTaraContainer = buildMockTaraContainer(IDENTITY_B)) {
+        try (var mockTaraContainer = buildMockTaraContainer(SUCCESSFUL_USER_RESPONSE_IDENTITY)) {
             mockTaraContainer.start();
             updateMockTaraUriInPerformer(mockTaraContainer);
 
@@ -100,62 +102,61 @@ class MapperAndPreconfiguredKeycloakIntegrationTests {
                 .parse(tokens.getAccessToken().getValue())
                 .getJWTClaimsSet()
                 .getClaims();
-            assertThat(accessTokenClaims).satisfies(containsStandardAccessTokenClaimsAndUserData(IDENTITY_B));
+            assertThat(accessTokenClaims).satisfies(containsStandardAccessTokenClaimsAndUserData(SUCCESSFUL_USER_RESPONSE_IDENTITY));
 
             var idTokenClaims = tokens.getIDToken().getJWTClaimsSet().getClaims();
-            assertThat(idTokenClaims).satisfies(containsStandardIdTokenClaimsAndUserData(IDENTITY_B));
+            assertThat(idTokenClaims).satisfies(containsStandardIdTokenClaimsAndUserData(SUCCESSFUL_USER_RESPONSE_IDENTITY));
 
             var refreshedAccessToken = authenticationPerformer.requestAccessTokenWithRefreshToken(tokens.getRefreshToken());
             var refreshedAccessTokenClaims = JWTParser.parse(refreshedAccessToken.getValue())
                 .getJWTClaimsSet()
                 .getClaims();
-            assertThat(refreshedAccessTokenClaims).satisfies(containsStandardAccessTokenClaimsAndUserData(IDENTITY_B));
+            assertThat(refreshedAccessTokenClaims).satisfies(containsStandardAccessTokenClaimsAndUserData(SUCCESSFUL_USER_RESPONSE_IDENTITY));
+
+            var userinfoClaims = authenticationPerformer.requestUserinfoWithAccessToken(tokens.getAccessToken()).toJSONObject();
+            assertThat(userinfoClaims).satisfies(containsStandardUserinfoClaimsAndUserData(SUCCESSFUL_USER_RESPONSE_IDENTITY));
         }
     }
 
     @Test
-    void givenQueryingUserinfoEndpoint_responseShouldContainCustomClaims_whenInstitutionIsSelected()
-        throws ParseException, IOException, URISyntaxException, UnsuccessfulResponseException {
-        try (var mockTaraContainer = buildMockTaraContainer(IDENTITY_C)) {
+    void tolkevaravClaimsShouldBeEmpty_whenResponseFromTvApiIs404()
+            throws IOException, UnsuccessfulResponseException, ParseException, URISyntaxException, java.text.ParseException {
+        try (var mockTaraContainer = buildMockTaraContainer(NOT_FOUND_RESPONSE_IDENTITY)) {
             mockTaraContainer.start();
             updateMockTaraUriInPerformer(mockTaraContainer);
 
-            var accessToken = authenticationPerformer
-                .performAuthorizationCodeFlow(
-                    new BasicNameValuePair(SELECTED_INSTITUTION_ID_HEADER_KEY, SUCCESSFUL_RESPONSE_INSTITUTION_ID.getValue()))
-                .getAccessToken();
+            var tokens = authenticationPerformer.performAuthorizationCodeFlow();
 
-            var userinfoClaims = authenticationPerformer
-                .requestUserinfoWithAccessToken(accessToken)
-                .toJWTClaimsSet()
-                .getClaims();
-            assertThat(userinfoClaims).satisfies(containsStandardUserinfoClaimsAndInstitutionUserData(IDENTITY_C));
+            var accessTokenClaims = JWTParser
+                    .parse(tokens.getAccessToken().getValue())
+                    .getJWTClaimsSet()
+                    .getClaims();
+            assertThat(accessTokenClaims).satisfies(containsStandardAccessTokenClaimsAndEmptyTolkevaravClaims());
+
+            var idTokenClaims = tokens.getIDToken().getJWTClaimsSet().getClaims();
+            assertThat(idTokenClaims).satisfies(containsStandardIdTokenClaimsAndEmptyTolkevaravClaims());
+
+            var refreshedAccessToken = authenticationPerformer.requestAccessTokenWithRefreshToken(tokens.getRefreshToken());
+            var refreshedAccessTokenClaims = JWTParser.parse(refreshedAccessToken.getValue())
+                    .getJWTClaimsSet()
+                    .getClaims();
+            assertThat(refreshedAccessTokenClaims).satisfies(containsStandardAccessTokenClaimsAndEmptyTolkevaravClaims());
+
+            var userinfoClaims = authenticationPerformer.requestUserinfoWithAccessToken(tokens.getAccessToken()).toJSONObject();
+            assertThat(userinfoClaims).satisfies(containsStandardUserinfoClaimsAndEmptyTolkevaravClaims());
         }
     }
 
     @Test
-    void givenQueryingUserinfoEndpoint_responseShouldContainJustUserData_whenInstitutionNotSelected()
-        throws ParseException, IOException, URISyntaxException, UnsuccessfulResponseException {
-        try (var mockTaraContainer = buildMockTaraContainer(IDENTITY_D)) {
-            mockTaraContainer.start();
-            updateMockTaraUriInPerformer(mockTaraContainer);
-
-            var accessToken = authenticationPerformer.performAuthorizationCodeFlow().getAccessToken();
-            var userinfoClaims = authenticationPerformer.requestUserinfoWithAccessToken(accessToken).toJSONObject();
-            assertThat(userinfoClaims).satisfies(containsStandardUserinfoClaimsAndUserData(IDENTITY_D));
-        }
-    }
-
-    @Test
-    void givenAuthorizationCodeFlow_flowShouldQueryTvApiAndFail_whenInvalidInstitutionIsSelected() throws IOException {
-        try (var mockTaraContainer = buildMockTaraContainer(IDENTITY_E)) {
+    void mapperShouldFail_whenApiResponseIs403() throws IOException {
+        try (var mockTaraContainer = buildMockTaraContainer(FORBIDDEN_RESPONSE_IDENTITY)) {
             mockTaraContainer.start();
             updateMockTaraUriInPerformer(mockTaraContainer);
 
             var initialApiRequestsCount = authenticationPerformer.retrieveMockTvApiRequestsCount();
 
             assertThatThrownBy(() -> authenticationPerformer.performAuthorizationCodeFlow(
-                    new BasicNameValuePair(SELECTED_INSTITUTION_ID_HEADER_KEY, "?")
+                    new BasicNameValuePair(SELECTED_INSTITUTION_ID_HEADER_KEY, EXAMPLE_INSTITUTION_ID.getValue())
                 ))
                 .satisfies(ClaimsAssertions::isUnsuccessfulResponseExceptionWithStatus500);
 
@@ -165,14 +166,14 @@ class MapperAndPreconfiguredKeycloakIntegrationTests {
     }
 
     @Test
-    void givenAuthorizationCodeFlow_flowShouldQueryTvApiAndFail_whenRequestToTvApiTimesout() throws IOException {
-        try (var mockTaraContainer = buildMockTaraContainer(IDENTITY_E)) {
+    void mapperShouldFail_whenRequestToTvApiTimesout() throws IOException {
+        try (var mockTaraContainer = buildMockTaraContainer(DELAYED_RESPONSE_IDENTITY)) {
             mockTaraContainer.start();
             updateMockTaraUriInPerformer(mockTaraContainer);
             MOCK_TOLKEVARAV_CONTAINER.stop();
 
             assertThatThrownBy(() -> authenticationPerformer.performAuthorizationCodeFlow(
-                    new BasicNameValuePair(SELECTED_INSTITUTION_ID_HEADER_KEY, SUCCESSFUL_RESPONSE_INSTITUTION_ID.getValue())
+                    new BasicNameValuePair(SELECTED_INSTITUTION_ID_HEADER_KEY, EXAMPLE_INSTITUTION_ID.getValue())
                 ))
                 .satisfies(ClaimsAssertions::isUnsuccessfulResponseExceptionWithStatus500);
         } finally {
@@ -182,15 +183,15 @@ class MapperAndPreconfiguredKeycloakIntegrationTests {
     }
 
     @Test
-    void givenAuthorizationCodeFlow_flowShouldQueryTvApiAndFail_whenResponseFromTvApiIsEmpty() throws IOException {
-        try (var mockTaraContainer = buildMockTaraContainer(IDENTITY_E)) {
+    void mapperShouldFail_whenResponseFromTvApiIsEmpty() throws IOException {
+        try (var mockTaraContainer = buildMockTaraContainer(EMPTY_RESPONSE_IDENTITY)) {
             mockTaraContainer.start();
             updateMockTaraUriInPerformer(mockTaraContainer);
 
             var initialApiRequestsCount = authenticationPerformer.retrieveMockTvApiRequestsCount();
 
             assertThatThrownBy(() -> authenticationPerformer.performAuthorizationCodeFlow(
-                    new BasicNameValuePair(SELECTED_INSTITUTION_ID_HEADER_KEY, EMPTY_RESPONSE_INSTITUTION_ID.getValue())
+                    new BasicNameValuePair(SELECTED_INSTITUTION_ID_HEADER_KEY, EXAMPLE_INSTITUTION_ID.getValue())
                 ))
                 .satisfies(ClaimsAssertions::isUnsuccessfulResponseExceptionWithStatus500);
 
