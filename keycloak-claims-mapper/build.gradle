@@ -1,0 +1,43 @@
+plugins {
+    id 'java'
+    id 'java-library'
+}
+
+repositories {
+    mavenCentral()
+}
+
+ext {
+    keycloakVersion = '21.0.2'
+    autoServiceVersion = '1.0.1'
+    testContainersVersion = '1.18.0'
+}
+
+dependencies {
+    annotationProcessor "com.google.auto.service:auto-service:${autoServiceVersion}"
+    compileOnly "com.google.auto.service:auto-service-annotations:${autoServiceVersion}"
+
+    implementation "org.keycloak:keycloak-server-spi:${keycloakVersion}"
+    implementation "org.keycloak:keycloak-server-spi-private:${keycloakVersion}"
+    implementation "org.keycloak:keycloak-services:${keycloakVersion}"
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.2'
+    testImplementation 'org.assertj:assertj-core:3.24.2'
+    testImplementation 'com.github.dasniko:testcontainers-keycloak:2.5.0'
+    testImplementation 'com.nimbusds:oauth2-oidc-sdk:10.7.2'
+    testImplementation 'org.mock-server:mockserver-client-java-no-dependencies:5.15.0'
+    testImplementation 'com.google.guava:guava:31.1-jre'
+    testImplementation "org.testcontainers:testcontainers:${testContainersVersion}"
+    testImplementation "org.testcontainers:junit-jupiter:${testContainersVersion}"
+    testImplementation "org.testcontainers:postgresql:${testContainersVersion}"
+    testImplementation "org.testcontainers:mockserver:${testContainersVersion}"
+    testImplementation 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+group = 'ee.eki.tolkevarav'
+version = '1.0-SNAPSHOT'
+java.sourceCompatibility = JavaVersion.VERSION_17

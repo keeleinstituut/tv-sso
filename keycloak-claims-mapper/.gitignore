@@ -1,0 +1,5 @@
+###Project Specific Files
+build/
+!**/src/main/**/target/
+!**/src/test/**/target/
+.gradle/
