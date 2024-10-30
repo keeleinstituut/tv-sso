@@ -20,6 +20,7 @@ dependencies {
     implementation "org.keycloak:keycloak-server-spi:${keycloakVersion}"
     implementation "org.keycloak:keycloak-server-spi-private:${keycloakVersion}"
     implementation "org.keycloak:keycloak-services:${keycloakVersion}"
+    implementation "com.rabbitmq:amqp-client:5.22.0"
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.2'
     testImplementation 'org.assertj:assertj-core:3.24.2'
