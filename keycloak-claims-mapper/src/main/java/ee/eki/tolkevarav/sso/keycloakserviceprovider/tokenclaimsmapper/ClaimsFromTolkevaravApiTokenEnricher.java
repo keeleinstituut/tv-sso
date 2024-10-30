@@ -2,6 +2,7 @@ package ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import ee.eki.tolkevarav.sso.keycloakserviceprovider.serviceaccountfetcher.ServiceAccountFetcher;
 import org.apache.http.client.utils.URIBuilder;
 import org.jboss.logging.Logger;
 import org.keycloak.events.EventBuilder;
@@ -16,6 +17,7 @@ import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 
 import static ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper.PersonalIdentificationCodeParser.parseAssumingEePrefix;
@@ -27,6 +29,7 @@ class ClaimsFromTolkevaravApiTokenEnricher {
     private final ConfigurationParameters configuration;
     private final KeycloakSession keycloakSession;
     private final UserSessionModel userSession;
+    private final ServiceAccountFetcher serviceAccountFetcher;
 
     private static final Logger logger = Logger.getLogger(ClaimsFromTolkevaravApiTokenEnricher.class);
 
@@ -36,6 +39,7 @@ class ClaimsFromTolkevaravApiTokenEnricher {
         this.configuration = ConfigurationParameters.fromModel(mapperModel);
         this.keycloakSession = keycloakSession;
         this.userSession = userSession;
+        this.serviceAccountFetcher = new ServiceAccountFetcher(keycloakSession, this.configuration.selfAuthenticationClientId());
     }
 
     void enrichToken(IDToken token) throws TokenEnrichmentException, URISyntaxException, IOException, InterruptedException {
@@ -46,7 +50,7 @@ class ClaimsFromTolkevaravApiTokenEnricher {
         var claimsFromApi = queryClaimsFromApi(
             retrievePersonalIdentificationCode(),
             retrieveInstitutionId(),
-            generateAccessToken()
+            this.serviceAccountFetcher.getServiceAccountAccessToken()
         );
 
         logger.infof("Claims received from Tõlkevärav API: %s", claimsFromApi);
@@ -63,6 +67,8 @@ class ClaimsFromTolkevaravApiTokenEnricher {
             token.getOtherClaims().put("tolkevarav", claimsFromApi);
             logger.info("Tõlkevärav claims were set to what was received from API.");
         }
+
+        setTolkevaravInfoToUserSessionNotes(claimsFromApi);
     }
 
     Map<String, Object> queryClaimsFromApi(String personalIdentificationCode, String institutionId, String accessToken)
@@ -133,47 +139,30 @@ class ClaimsFromTolkevaravApiTokenEnricher {
         return null;
     }
 
+    void setTolkevaravInfoToUserSessionNotes(Map<String, Object> claimsFromApi) {
+        userSession.setNote("TV_PREVIOUS_INSTITUTION_USER_ID", userSession.getNote("TV_INSTITUTION_USER_ID"));
+        userSession.setNote("TV_PREVIOUS_SELECTED_INSTITUTION_ID", userSession.getNote("TV_SELECTED_INSTITUTION_ID"));
+        userSession.setNote("TV_PREVIOUS_SELECTED_INSTITUTION_NAME", userSession.getNote("TV_SELECTED_INSTITUTION_NAME"));
+        userSession.setNote("TV_PREVIOUS_DEPARTMENT_ID", userSession.getNote("TV_DEPARTMENT_ID"));
+        userSession.setNote("TV_PREVIOUS_DEPARTMENT_NAME", userSession.getNote("TV_DEPARTMENT_NAME"));
+
+        userSession.setNote("TV_USER_PERSONAL_IDENTIFICATION_CODE", ((String) claimsFromApi.get("personalIdentificationCode")));
+        userSession.setNote("TV_USER_ID", ((String) claimsFromApi.get("userId")));
+        userSession.setNote("TV_USER_FORENAME", ((String) claimsFromApi.get("forename")));
+        userSession.setNote("TV_USER_SURNAME", ((String) claimsFromApi.get("surname")));
+
+        userSession.setNote("TV_INSTITUTION_USER_ID", ((String) claimsFromApi.get("institutionUserId")));
+        userSession.setNote("TV_SELECTED_INSTITUTION_ID", ((Map<String, String>) claimsFromApi.getOrDefault("selectedInstitution", new HashMap<>())).get("id"));
+        userSession.setNote("TV_SELECTED_INSTITUTION_NAME", ((Map<String, String>) claimsFromApi.getOrDefault("selectedInstitution", new HashMap<>())).get("name"));
+        userSession.setNote("TV_DEPARTMENT_ID", ((Map<String, String>) claimsFromApi.getOrDefault("department", new HashMap<>())).get("id"));
+        userSession.setNote("TV_DEPARTMENT_NAME", ((Map<String, String>) claimsFromApi.getOrDefault("department", new HashMap<>())).get("name"));
+    }
+
     String buildInstitutionIdSessionNoteKey() {
         return ClaimsFromTolkevaravApiTokenEnricher.class.getName()
             + ".SelectedInstitutionId."
             + userSession.getId()
             + "."
             + configuration.mapperId();
-    }
-
-    String generateAccessToken() {
-        var realm = keycloakSession.getContext().getRealm();
-        var selfAuthenticationClient = keycloakSession.clients().getClientByClientId(realm, configuration.selfAuthenticationClientId());
-        var authSession = new AuthenticationSessionManager(keycloakSession)
-            .createAuthenticationSession(realm, false)
-            .createAuthenticationSession(selfAuthenticationClient);
-        var connection = keycloakSession.getContext().getConnection();
-        var serviceAccount = keycloakSession.users().getServiceAccount(selfAuthenticationClient);
-        var eventBuilder = new EventBuilder(realm, keycloakSession, connection);
-        var serviceAccountSession = keycloakSession.sessions().createUserSession(
-            realm,
-            serviceAccount,
-            serviceAccount.getUsername(),
-            null,
-            null,
-            false,
-            null,
-            null
-        );
-        var selfAuthenticationClientSessionContext = TokenManager.attachAuthenticationSession(
-            keycloakSession, serviceAccountSession, authSession
-        );
-
-        return new TokenManager()
-            .responseBuilder(
-                realm,
-                selfAuthenticationClient,
-                eventBuilder,
-                keycloakSession,
-                serviceAccountSession,
-                selfAuthenticationClientSessionContext)
-            .generateAccessToken()
-            .build()
-            .getToken();
     }
 }
