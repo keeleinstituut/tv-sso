@@ -76,6 +76,12 @@ public class TvEventListenerProvider implements EventListenerProvider {
         Map<String, String> notes = userSession.getNotes();
         List<AuditLogMessage> messages = new ArrayList<>();
 
+        logger.info("CHECKING EVENT TYPE");
+        logger.info("event.getType(): " + event.getType());
+        logger.info("userSession.notes: " + notes);
+        logger.info("selected institution id: " + notes.get("TV_SELECTED_INSTITUTION_ID"));
+        logger.info("previous institution id: " + notes.get("TV_PREVIOUS_SELECTED_INSTITUTION_ID"));
+
         switch (event.getType()) {
             case LOGOUT -> messages.add(new AuditLogMessage()
                             .fillUserInfo(notes)
