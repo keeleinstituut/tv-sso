@@ -1,9 +1,11 @@
 package ee.eki.tolkevarav.sso.keycloakserviceprovider.eventlistener;
 
-import ee.eki.tolkevarav.sso.keycloakserviceprovider.serviceaccountfetcher.ServiceAccountFetcher;
+import ee.eki.tolkevarav.sso.keycloakserviceprovider.util.auditlogclient.AuditLogClient;
+import ee.eki.tolkevarav.sso.keycloakserviceprovider.util.auditlogclient.AuditLogMessage;
 import org.jboss.logging.Logger;
 import org.keycloak.events.Event;
 import org.keycloak.events.EventListenerProvider;
+import org.keycloak.events.EventType;
 import org.keycloak.events.admin.AdminEvent;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
@@ -12,7 +14,7 @@ import org.keycloak.models.UserSessionModel;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeoutException;
 
 public class TvEventListenerProvider implements EventListenerProvider {
@@ -22,10 +24,9 @@ public class TvEventListenerProvider implements EventListenerProvider {
     private final KeycloakSession session;
     private final AuditLogClient auditLogClient;
 
-    public TvEventListenerProvider(KeycloakSession session, TvEventListenerConfiguration configuration) {
+    public TvEventListenerProvider(KeycloakSession session) {
         this.session = session;
-        ServiceAccountFetcher serviceAccountFetcher = new ServiceAccountFetcher(session, configuration.getTvEventListenerClientId());
-        this.auditLogClient = new AuditLogClient(configuration, serviceAccountFetcher);
+        this.auditLogClient = new AuditLogClient(session);
     }
 
     @Override
@@ -37,14 +38,12 @@ public class TvEventListenerProvider implements EventListenerProvider {
             return;
         }
 
-        messages.forEach(auditLogMessage -> {
-            try {
-                this.auditLogClient.send(auditLogMessage);
-            } catch (IOException e) {
-                logger.error("Encountered error sending message with AuditLogClient", e);
-                throw new RuntimeException(e);
-            }
-        });
+        try {
+            this.auditLogClient.send(messages);
+        } catch (IOException e) {
+            logger.error("Encountered error sending messages with AuditLogClient", e);
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -73,42 +72,13 @@ public class TvEventListenerProvider implements EventListenerProvider {
             return null;
         }
 
-        Map<String, String> notes = userSession.getNotes();
         List<AuditLogMessage> messages = new ArrayList<>();
 
-        logger.info("CHECKING EVENT TYPE");
-        logger.info("event.getType(): " + event.getType());
-        logger.info("userSession.notes: " + notes);
-        logger.info("selected institution id: " + notes.get("TV_SELECTED_INSTITUTION_ID"));
-        logger.info("previous institution id: " + notes.get("TV_PREVIOUS_SELECTED_INSTITUTION_ID"));
-
-        switch (event.getType()) {
-            case LOGOUT -> messages.add(new AuditLogMessage()
-                            .fillUserInfo(notes)
-                            .fillInstitutionInfo(notes)
-                            .eventType("LOG_OUT"));
-            case REFRESH_TOKEN -> {
-                String selectedInstitutionId = notes.get("TV_SELECTED_INSTITUTION_ID");
-                String previousInstitutionId = notes.get("TV_PREVIOUS_SELECTED_INSTITUTION_ID");
-
-                if (selectedInstitutionId != null) {
-                    if (previousInstitutionId == null) {
-                        messages.add(new AuditLogMessage()
-                                        .fillUserInfo(notes)
-                                        .fillInstitutionInfo(notes)
-                                        .eventType("LOG_IN"));
-                    } else if (!selectedInstitutionId.equals(previousInstitutionId)) {
-                        messages.add(new AuditLogMessage()
-                                        .fillUserInfo(notes)
-                                        .fillPreviousInstitutionInfo(notes)
-                                        .eventType("LOG_OUT"));
-                        messages.add(new AuditLogMessage()
-                                        .fillUserInfo(notes)
-                                        .fillInstitutionInfo(notes)
-                                        .eventType("LOG_IN"));
-                   }
-                }
-            }
+        if (Objects.requireNonNull(event.getType()) == EventType.LOGOUT) {
+            messages.add(new AuditLogMessage()
+                    .fillUserInfo(userSession)
+                    .fillInstitutionInfo(userSession)
+                    .eventType("LOG_OUT"));
         }
 
         return messages;

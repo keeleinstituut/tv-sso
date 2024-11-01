@@ -1,4 +1,4 @@
-package ee.eki.tolkevarav.sso.keycloakserviceprovider.serviceaccountfetcher;
+package ee.eki.tolkevarav.sso.keycloakserviceprovider.util.serviceaccountfetcher;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.jboss.logging.Logger;

@@ -1,6 +1,6 @@
-package ee.eki.tolkevarav.sso.keycloakserviceprovider.eventlistener;
+package ee.eki.tolkevarav.sso.keycloakserviceprovider.util.auditlogclient;
 
-public class TvEventListenerConfiguration {
+class AuditLogClientConfiguration {
 
     private String rabbitMqHost;
     private int rabbitMqPort;
@@ -8,8 +8,8 @@ public class TvEventListenerConfiguration {
     private String rabbitMqPassword;
     private String tvEventListenerClientId;
 
-    public static TvEventListenerConfiguration fromSystemEnv() {
-        TvEventListenerConfiguration configuration = new TvEventListenerConfiguration();
+    public static AuditLogClientConfiguration fromSystemEnv() {
+        AuditLogClientConfiguration configuration = new AuditLogClientConfiguration();
         configuration.rabbitMqHost = System.getenv("RABBITMQ_HOST");
         configuration.rabbitMqPort = Integer.parseInt(System.getenv("RABBITMQ_PORT"));
         configuration.rabbitMqUser = System.getenv("RABBITMQ_USER");

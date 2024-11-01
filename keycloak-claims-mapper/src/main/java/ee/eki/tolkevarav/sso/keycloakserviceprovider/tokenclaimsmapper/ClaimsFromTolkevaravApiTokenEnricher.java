@@ -2,14 +2,13 @@ package ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import ee.eki.tolkevarav.sso.keycloakserviceprovider.serviceaccountfetcher.ServiceAccountFetcher;
+import ee.eki.tolkevarav.sso.keycloakserviceprovider.util.auditlogclient.AuditLogClient;
+import ee.eki.tolkevarav.sso.keycloakserviceprovider.util.auditlogclient.AuditLogMessage;
+import ee.eki.tolkevarav.sso.keycloakserviceprovider.util.serviceaccountfetcher.ServiceAccountFetcher;
 import org.apache.http.client.utils.URIBuilder;
 import org.jboss.logging.Logger;
-import org.keycloak.events.EventBuilder;
 import org.keycloak.models.*;
-import org.keycloak.protocol.oidc.TokenManager;
 import org.keycloak.representations.IDToken;
-import org.keycloak.services.managers.AuthenticationSessionManager;
 import org.keycloak.utils.StringUtil;
 
 import java.io.IOException;
@@ -19,6 +18,7 @@ import java.net.http.HttpRequest;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper.PersonalIdentificationCodeParser.parseAssumingEePrefix;
 import static java.net.http.HttpResponse.BodyHandlers.ofString;
@@ -31,6 +31,8 @@ class ClaimsFromTolkevaravApiTokenEnricher {
     private final UserSessionModel userSession;
     private final ServiceAccountFetcher serviceAccountFetcher;
 
+    private final AuditLogClient auditLogClient;
+
     private static final Logger logger = Logger.getLogger(ClaimsFromTolkevaravApiTokenEnricher.class);
 
     ClaimsFromTolkevaravApiTokenEnricher(ProtocolMapperModel mapperModel,
@@ -40,6 +42,7 @@ class ClaimsFromTolkevaravApiTokenEnricher {
         this.keycloakSession = keycloakSession;
         this.userSession = userSession;
         this.serviceAccountFetcher = new ServiceAccountFetcher(keycloakSession, this.configuration.selfAuthenticationClientId());
+        this.auditLogClient = new AuditLogClient(keycloakSession);
     }
 
     void enrichToken(IDToken token) throws TokenEnrichmentException, URISyntaxException, IOException, InterruptedException {
@@ -140,22 +143,49 @@ class ClaimsFromTolkevaravApiTokenEnricher {
     }
 
     void setTolkevaravInfoToUserSessionNotes(Map<String, Object> claimsFromApi) {
-        userSession.setNote("TV_PREVIOUS_INSTITUTION_USER_ID", userSession.getNote("TV_INSTITUTION_USER_ID"));
-        userSession.setNote("TV_PREVIOUS_SELECTED_INSTITUTION_ID", userSession.getNote("TV_SELECTED_INSTITUTION_ID"));
-        userSession.setNote("TV_PREVIOUS_SELECTED_INSTITUTION_NAME", userSession.getNote("TV_SELECTED_INSTITUTION_NAME"));
-        userSession.setNote("TV_PREVIOUS_DEPARTMENT_ID", userSession.getNote("TV_DEPARTMENT_ID"));
-        userSession.setNote("TV_PREVIOUS_DEPARTMENT_NAME", userSession.getNote("TV_DEPARTMENT_NAME"));
+        String selectedInstitutionIdFromNotes = userSession.getNote("TV_SELECTED_INSTITUTION_ID");
+        String selectedInstitutionIdFromClaim = ((Map<String, String>) claimsFromApi.getOrDefault("selectedInstitution", new HashMap<>())).get("id");
+
+        boolean isChanged = !Optional.ofNullable(selectedInstitutionIdFromClaim).orElse("").equals(Optional.ofNullable(selectedInstitutionIdFromNotes).orElse(""));
+
+        if (isChanged && selectedInstitutionIdFromNotes != null) {
+            var message = new AuditLogMessage()
+                    .fillUserInfo(userSession)
+                    .fillInstitutionInfo(userSession)
+                    .eventType("LOG_OUT");
+
+            try {
+                this.auditLogClient.send(message);
+            } catch (IOException e) {
+                logger.error("Encountered error sending messages with AuditLogClient", e);
+                throw new RuntimeException(e);
+            }
+        }
 
         userSession.setNote("TV_USER_PERSONAL_IDENTIFICATION_CODE", ((String) claimsFromApi.get("personalIdentificationCode")));
         userSession.setNote("TV_USER_ID", ((String) claimsFromApi.get("userId")));
         userSession.setNote("TV_USER_FORENAME", ((String) claimsFromApi.get("forename")));
         userSession.setNote("TV_USER_SURNAME", ((String) claimsFromApi.get("surname")));
 
-        userSession.setNote("TV_INSTITUTION_USER_ID", ((String) claimsFromApi.get("institutionUserId")));
-        userSession.setNote("TV_SELECTED_INSTITUTION_ID", ((Map<String, String>) claimsFromApi.getOrDefault("selectedInstitution", new HashMap<>())).get("id"));
+        userSession.setNote("TV_SELECTED_INSTITUTION_ID", selectedInstitutionIdFromClaim);
         userSession.setNote("TV_SELECTED_INSTITUTION_NAME", ((Map<String, String>) claimsFromApi.getOrDefault("selectedInstitution", new HashMap<>())).get("name"));
+        userSession.setNote("TV_INSTITUTION_USER_ID", ((String) claimsFromApi.get("institutionUserId")));
         userSession.setNote("TV_DEPARTMENT_ID", ((Map<String, String>) claimsFromApi.getOrDefault("department", new HashMap<>())).get("id"));
         userSession.setNote("TV_DEPARTMENT_NAME", ((Map<String, String>) claimsFromApi.getOrDefault("department", new HashMap<>())).get("name"));
+
+        if (isChanged && selectedInstitutionIdFromClaim != null) {
+            var message = new AuditLogMessage()
+                    .fillUserInfo(userSession)
+                    .fillInstitutionInfo(userSession)
+                    .eventType("LOG_IN");
+
+            try {
+                this.auditLogClient.send(message);
+            } catch (IOException e) {
+                logger.error("Encountered error sending messages with AuditLogClient", e);
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     String buildInstitutionIdSessionNoteKey() {

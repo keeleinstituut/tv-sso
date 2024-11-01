@@ -10,16 +10,14 @@ import org.keycloak.models.KeycloakSessionFactory;
 @AutoService(EventListenerProviderFactory.class)
 public class TvEventListenerProviderFactory implements EventListenerProviderFactory {
 
-    private TvEventListenerConfiguration configuration;
-
     @Override
     public EventListenerProvider create(KeycloakSession keycloakSession) {
-        return new TvEventListenerProvider(keycloakSession, configuration);
+        return new TvEventListenerProvider(keycloakSession);
     }
 
     @Override
     public void init(Config.Scope scope) {
-        configuration = TvEventListenerConfiguration.fromSystemEnv();
+
     }
 
     @Override
