@@ -1,6 +1,6 @@
 FROM gradle:jdk17 as build
 WORKDIR /home/app
-COPY keycloak-claims-mapper .
+COPY keycloak-tv-extensions .
 RUN gradle jar
 
 # TODO: Use an immutable image tag before moving to production
