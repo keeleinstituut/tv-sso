@@ -79,12 +79,14 @@ public class ClaimsFromTolkevaravApiMapper extends AbstractOIDCProtocolMapper
 
     @Override
     protected void setClaim(IDToken token, ProtocolMapperModel mapperModel, UserSessionModel userSession, KeycloakSession keycloakSession, ClientSessionContext clientSessionContext) {
-        try {
-            new ClaimsFromTolkevaravApiTokenEnricher(
+        ClaimsFromTolkevaravApiTokenEnricher enricher = new ClaimsFromTolkevaravApiTokenEnricher(
                 mapperModel,
                 keycloakSession,
                 userSession
-            ).enrichToken(token);
+        );
+
+        try {
+            enricher.enrichToken(token);
         } catch (TokenEnrichmentException | URISyntaxException | IOException exception) {
             logger.error("Cancelled enriching of token because of an unacceptable/unexpected scenario.", exception);
 
@@ -95,6 +97,8 @@ public class ClaimsFromTolkevaravApiMapper extends AbstractOIDCProtocolMapper
         } catch (InterruptedException interruptedException) {
             logger.fatal("Cancelled enriching of token because of interruption.", interruptedException);
             Thread.currentThread().interrupt();
+        } finally {
+            enricher.close();
         }
     }
 

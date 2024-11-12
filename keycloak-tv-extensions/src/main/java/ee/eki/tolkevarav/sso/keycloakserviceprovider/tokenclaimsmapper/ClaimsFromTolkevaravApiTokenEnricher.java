@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeoutException;
 
 import static ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper.PersonalIdentificationCodeParser.parseAssumingEePrefix;
 import static java.net.http.HttpResponse.BodyHandlers.ofString;
@@ -43,6 +44,14 @@ class ClaimsFromTolkevaravApiTokenEnricher {
         this.userSession = userSession;
         this.serviceAccountFetcher = new ServiceAccountFetcher(keycloakSession, this.configuration.selfAuthenticationClientId());
         this.auditLogClient = new AuditLogClient(keycloakSession);
+    }
+
+    public void close() {
+        try {
+            this.auditLogClient.close();
+        } catch (IOException | TimeoutException e) {
+            logger.error("Encountered error closing AuditLogClient", e);
+        }
     }
 
     void enrichToken(IDToken token) throws TokenEnrichmentException, URISyntaxException, IOException, InterruptedException {
