@@ -1,2 +1,5 @@
 ### Project Specific Files
 helm/charts
+
+.idea
+.env

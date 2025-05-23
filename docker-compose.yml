@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - database
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_EXTRA_ARGS: '--debug'
+      KEYCLOAK_PRODUCTION: false
+      DB_VENDOR: POSTGRES
+      DB_ADDR: database
+      DB_PORT: 5432
+      DB_SCHEMA: public
+      DB_DATABASE: ${KEYCLOAK_DATABASE}
+      DB_USER: ${KEYCLOAK_DATABASE_USER}
+      DB_PASSWORD: ${KEYCLOAK_DATABASE_PASSWORD}
+      DEBUG_PORT: '*:8081'
+      RABBITMQ_HOST: host.docker.internal
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+      TV_EVENT_LISTENER_CLIENT_ID: tv-keycloak-event-listener
+    ports:
+      - 8181:8081
+
+  database:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: ${KEYCLOAK_DATABASE}
+      POSTGRES_USER: ${KEYCLOAK_DATABASE_USER}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DATABASE_PASSWORD}
+
+  nginx:
+    image: nginx:latest
+    depends_on:
+      app:
+        condition: service_started
+    ports:
+      - 8180:80
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
