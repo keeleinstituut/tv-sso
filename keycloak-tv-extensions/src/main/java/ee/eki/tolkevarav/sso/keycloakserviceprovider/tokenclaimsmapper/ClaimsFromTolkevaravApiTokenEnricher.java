@@ -32,7 +32,7 @@ class ClaimsFromTolkevaravApiTokenEnricher {
     private final UserSessionModel userSession;
     private final ServiceAccountFetcher serviceAccountFetcher;
 
-    private final AuditLogClient auditLogClient;
+    // private final AuditLogClient auditLogClient;
 
     private static final Logger logger = Logger.getLogger(ClaimsFromTolkevaravApiTokenEnricher.class);
 
@@ -43,15 +43,15 @@ class ClaimsFromTolkevaravApiTokenEnricher {
         this.keycloakSession = keycloakSession;
         this.userSession = userSession;
         this.serviceAccountFetcher = new ServiceAccountFetcher(keycloakSession, this.configuration.selfAuthenticationClientId());
-        this.auditLogClient = new AuditLogClient(keycloakSession);
+        // this.auditLogClient = new AuditLogClient(keycloakSession);
     }
 
     public void close() {
-        try {
-            this.auditLogClient.close();
-        } catch (IOException | TimeoutException e) {
-            logger.error("Encountered error closing AuditLogClient", e);
-        }
+        // try {
+        //     this.auditLogClient.close();
+        // } catch (IOException | TimeoutException e) {
+        //     logger.error("Encountered error closing AuditLogClient", e);
+        // }
     }
 
     void enrichToken(IDToken token) throws TokenEnrichmentException, URISyntaxException, IOException, InterruptedException {
@@ -157,19 +157,19 @@ class ClaimsFromTolkevaravApiTokenEnricher {
 
         boolean isChanged = !Optional.ofNullable(selectedInstitutionIdFromClaim).orElse("").equals(Optional.ofNullable(selectedInstitutionIdFromNotes).orElse(""));
 
-        if (isChanged && selectedInstitutionIdFromNotes != null) {
-            var message = new AuditLogMessage()
-                    .fillUserInfo(userSession)
-                    .fillInstitutionInfo(userSession)
-                    .eventType("LOG_OUT");
+        // if (isChanged && selectedInstitutionIdFromNotes != null) {
+        //     var message = new AuditLogMessage()
+        //             .fillUserInfo(userSession)
+        //             .fillInstitutionInfo(userSession)
+        //             .eventType("LOG_OUT");
 
-            try {
-                this.auditLogClient.send(message);
-            } catch (IOException e) {
-                logger.error("Encountered error sending messages with AuditLogClient", e);
-                throw new RuntimeException(e);
-            }
-        }
+        //     try {
+        //         this.auditLogClient.send(message);
+        //     } catch (IOException e) {
+        //         logger.error("Encountered error sending messages with AuditLogClient", e);
+        //         throw new RuntimeException(e);
+        //     }
+        // }
 
         userSession.setNote("TV_USER_PERSONAL_IDENTIFICATION_CODE", ((String) claimsFromApi.get("personalIdentificationCode")));
         userSession.setNote("TV_USER_ID", ((String) claimsFromApi.get("userId")));
@@ -182,19 +182,19 @@ class ClaimsFromTolkevaravApiTokenEnricher {
         userSession.setNote("TV_DEPARTMENT_ID", ((Map<String, String>) claimsFromApi.getOrDefault("department", new HashMap<>())).get("id"));
         userSession.setNote("TV_DEPARTMENT_NAME", ((Map<String, String>) claimsFromApi.getOrDefault("department", new HashMap<>())).get("name"));
 
-        if (isChanged && selectedInstitutionIdFromClaim != null) {
-            var message = new AuditLogMessage()
-                    .fillUserInfo(userSession)
-                    .fillInstitutionInfo(userSession)
-                    .eventType("LOG_IN");
+        // if (isChanged && selectedInstitutionIdFromClaim != null) {
+        //     var message = new AuditLogMessage()
+        //             .fillUserInfo(userSession)
+        //             .fillInstitutionInfo(userSession)
+        //             .eventType("LOG_IN");
 
-            try {
-                this.auditLogClient.send(message);
-            } catch (IOException e) {
-                logger.error("Encountered error sending messages with AuditLogClient", e);
-                throw new RuntimeException(e);
-            }
-        }
+        //     try {
+        //         this.auditLogClient.send(message);
+        //     } catch (IOException e) {
+        //         logger.error("Encountered error sending messages with AuditLogClient", e);
+        //         throw new RuntimeException(e);
+        //     }
+        // }
     }
 
     String buildInstitutionIdSessionNoteKey() {
