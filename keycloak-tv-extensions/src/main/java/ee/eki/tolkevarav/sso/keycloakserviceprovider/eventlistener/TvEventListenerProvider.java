@@ -22,28 +22,28 @@ public class TvEventListenerProvider implements EventListenerProvider {
     private static final Logger logger = Logger.getLogger(TvEventListenerProvider.class);
 
     private final KeycloakSession session;
-    private final AuditLogClient auditLogClient;
+    // private final AuditLogClient auditLogClient;
 
     public TvEventListenerProvider(KeycloakSession session) {
         this.session = session;
-        this.auditLogClient = new AuditLogClient(session);
+        // this.auditLogClient = new AuditLogClient(session);
     }
 
     @Override
     public void onEvent(Event event) {
-        logger.info("Received user event with type %s".formatted(event.getType()));
-        List<AuditLogMessage> messages = this.constructAuditLogMessages(event);
+        // logger.info("Received user event with type %s".formatted(event.getType()));
+        // List<AuditLogMessage> messages = this.constructAuditLogMessages(event);
 
-        if (messages == null) {
-            return;
-        }
+        // if (messages == null) {
+        //     return;
+        // }
 
-        try {
-            this.auditLogClient.send(messages);
-        } catch (IOException e) {
-            logger.error("Encountered error sending messages with AuditLogClient", e);
-            throw new RuntimeException(e);
-        }
+        // try {
+        //     this.auditLogClient.send(messages);
+        // } catch (IOException e) {
+        //     logger.error("Encountered error sending messages with AuditLogClient", e);
+        //     throw new RuntimeException(e);
+        // }
     }
 
     @Override
@@ -53,34 +53,34 @@ public class TvEventListenerProvider implements EventListenerProvider {
 
     @Override
     public void close() {
-        try {
-            this.auditLogClient.close();
-        } catch (IOException | TimeoutException e) {
-            logger.error("Encountered error closing AuditLogClient", e);
-        }
+        // try {
+        //     this.auditLogClient.close();
+        // } catch (IOException | TimeoutException e) {
+        //     logger.error("Encountered error closing AuditLogClient", e);
+        // }
     }
 
-    private List<AuditLogMessage> constructAuditLogMessages(Event event) {
-        if (event.getSessionId() == null) {
-            return null;
-        }
+    // private List<AuditLogMessage> constructAuditLogMessages(Event event) {
+    //     if (event.getSessionId() == null) {
+    //         return null;
+    //     }
 
-        RealmModel realm = session.realms().getRealm(event.getRealmId());
-        UserSessionModel userSession = session.sessions().getUserSession(realm, event.getSessionId());
+    //     RealmModel realm = session.realms().getRealm(event.getRealmId());
+    //     UserSessionModel userSession = session.sessions().getUserSession(realm, event.getSessionId());
 
-        if (userSession == null) {
-            return null;
-        }
+    //     if (userSession == null) {
+    //         return null;
+    //     }
 
-        List<AuditLogMessage> messages = new ArrayList<>();
+    //     List<AuditLogMessage> messages = new ArrayList<>();
 
-        if (Objects.requireNonNull(event.getType()) == EventType.LOGOUT) {
-            messages.add(new AuditLogMessage()
-                    .fillUserInfo(userSession)
-                    .fillInstitutionInfo(userSession)
-                    .eventType("LOG_OUT"));
-        }
+    //     if (Objects.requireNonNull(event.getType()) == EventType.LOGOUT) {
+    //         messages.add(new AuditLogMessage()
+    //                 .fillUserInfo(userSession)
+    //                 .fillInstitutionInfo(userSession)
+    //                 .eventType("LOG_OUT"));
+    //     }
 
-        return messages;
-    }
+    //     return messages;
+    // }
 }
