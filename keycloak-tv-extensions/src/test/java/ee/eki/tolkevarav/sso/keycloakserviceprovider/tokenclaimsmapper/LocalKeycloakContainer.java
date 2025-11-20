@@ -10,33 +10,34 @@ import java.nio.file.Path;
 import static java.time.Duration.ofSeconds;
 
 public class LocalKeycloakContainer extends GenericContainer<LocalKeycloakContainer> {
+    private static final int CONTAINER_HTTP_PORT = 8080;
+
     @SuppressWarnings("resource")
     public LocalKeycloakContainer() {
         super(new ImageFromDockerfile().withDockerfile(Path.of(".", "..", "Dockerfile")));
-        withCopyFileToContainer(MountableFile.forClasspathResource("realm-tolkevarav-dev.json"), "/opt/bitnami/keycloak/data/import/realm-tolkevarav-dev.json");
-        withEnv("KEYCLOAK_EXTRA_ARGS", "--import-realm");
-        withEnv("KEYCLOAK_PRODUCTION", "FALSE");
-        withExposedPorts(8080);
+        withCopyFileToContainer(MountableFile.forClasspathResource("realm-tolkevarav-dev.json"), "/opt/keycloak/data/import/realm-tolkevarav-dev.json");
+        withEnv("KC_HOSTNAME_PORT", "8080");
+        withCommand("start-dev", "--import-realm");
+        withExposedPorts(CONTAINER_HTTP_PORT);
         setWaitStrategy(Wait.forHttp("/")
-            .forPort(8080)
+            .forPort(CONTAINER_HTTP_PORT)
             .withStartupTimeout(ofSeconds(120))
         );
-
     }
 
     public LocalKeycloakContainer withPostgresHost(String postgresHost) {
-        return withEnv("KEYCLOAK_DATABASE_HOST", postgresHost);
+        return withEnv("KC_DB_URL_HOST", postgresHost);
     }
 
     public LocalKeycloakContainer withDatabaseName(String databaseName) {
-        return withEnv("KEYCLOAK_DATABASE_NAME", databaseName);
+        return withEnv("KC_DB_URL_DATABASE", databaseName);
     }
 
     public LocalKeycloakContainer withDatabaseUser(String databaseUser) {
-        return withEnv("KEYCLOAK_DATABASE_USER", databaseUser);
+        return withEnv("KC_DB_USERNAME", databaseUser);
     }
 
     public LocalKeycloakContainer withDatabasePassword(String databasePassword) {
-        return withEnv("KEYCLOAK_DATABASE_PASSWORD", databasePassword);
+        return withEnv("KC_DB_PASSWORD", databasePassword);
     }
 }

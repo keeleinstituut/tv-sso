@@ -5,28 +5,32 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    command:
+      - start-dev
+      - --import-realm
     depends_on:
       - database
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-      KEYCLOAK_EXTRA_ARGS: '--debug'
-      KEYCLOAK_PRODUCTION: false
-      DB_VENDOR: POSTGRES
-      DB_ADDR: database
-      DB_PORT: 5432
-      DB_SCHEMA: public
-      DB_DATABASE: ${KEYCLOAK_DATABASE}
-      DB_USER: ${KEYCLOAK_DATABASE_USER}
-      DB_PASSWORD: ${KEYCLOAK_DATABASE_PASSWORD}
-      DEBUG_PORT: '*:8081'
+      KC_DB: postgres
+      KC_DB_URL_HOST: database
+      KC_DB_URL_PORT: 5432
+      KC_DB_URL_DATABASE: ${KEYCLOAK_DATABASE}
+      KC_DB_SCHEMA: public
+      KC_DB_USERNAME: ${KEYCLOAK_DATABASE_USER}
+      KC_DB_PASSWORD: ${KEYCLOAK_DATABASE_PASSWORD}
+      KC_HEALTH_ENABLED: 'true'
+      KC_METRICS_ENABLED: 'true'
+      KC_HOSTNAME_STRICT: 'false'
+      KC_HTTP_ENABLED: 'true'
       RABBITMQ_HOST: host.docker.internal
       RABBITMQ_PORT: 5672
       RABBITMQ_USER: guest
       RABBITMQ_PASSWORD: guest
       TV_EVENT_LISTENER_CLIENT_ID: tv-keycloak-event-listener
-    ports:
-      - 8181:8081
+    volumes:
+      - ./realm-tolkevarav-dev.json:/opt/keycloak/data/import/realm-tolkevarav-dev.json:ro
 
   database:
     image: postgres:latest
@@ -34,6 +38,8 @@ services:
       POSTGRES_DB: ${KEYCLOAK_DATABASE}
       POSTGRES_USER: ${KEYCLOAK_DATABASE_USER}
       POSTGRES_PASSWORD: ${KEYCLOAK_DATABASE_PASSWORD}
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
 
   nginx:
     image: nginx:latest
