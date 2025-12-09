@@ -9,8 +9,8 @@ repositories {
 
 ext {
     keycloakVersion = '21.0.2'
-    autoServiceVersion = '1.0.1'
-    testContainersVersion = '1.18.0'
+    autoServiceVersion = '1.1.1'
+    testContainersVersion = '1.21.3'
 }
 
 dependencies {
@@ -20,19 +20,20 @@ dependencies {
     implementation "org.keycloak:keycloak-server-spi:${keycloakVersion}"
     implementation "org.keycloak:keycloak-server-spi-private:${keycloakVersion}"
     implementation "org.keycloak:keycloak-services:${keycloakVersion}"
-    implementation "com.rabbitmq:amqp-client:5.22.0"
+    implementation "com.rabbitmq:amqp-client:5.27.1"
 
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.2'
-    testImplementation 'org.assertj:assertj-core:3.24.2'
-    testImplementation 'com.github.dasniko:testcontainers-keycloak:2.5.0'
-    testImplementation 'com.nimbusds:oauth2-oidc-sdk:10.7.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.13.2'
+    testImplementation 'org.assertj:assertj-core:3.27.6'
+    testImplementation 'com.nimbusds:oauth2-oidc-sdk:11.26'
     testImplementation 'org.mock-server:mockserver-client-java-no-dependencies:5.15.0'
-    testImplementation 'com.google.guava:guava:31.1-jre'
     testImplementation "org.testcontainers:testcontainers:${testContainersVersion}"
     testImplementation "org.testcontainers:junit-jupiter:${testContainersVersion}"
     testImplementation "org.testcontainers:postgresql:${testContainersVersion}"
     testImplementation "org.testcontainers:mockserver:${testContainersVersion}"
-    testImplementation 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
+    testImplementation 'org.apache.httpcomponents.client5:httpclient5:5.5.1'
+    
+    // Required for Gradle 9.0+ - JUnit Platform launcher must be explicitly declared
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 test {

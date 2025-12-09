@@ -32,7 +32,7 @@ class MapperAndPreconfiguredKeycloakIntegrationTests {
 
     @SuppressWarnings({"unused", "resource"})
     @Container
-    private static final PostgreSQLContainer<?> POSTGRES_CONTAINER = new PostgreSQLContainer<>("postgres")
+    private static final PostgreSQLContainer<?> POSTGRES_CONTAINER = new PostgreSQLContainer<>(parse("postgres"))
         .withNetwork(CONTAINER_NETWORK)
         .withNetworkAliases("postgres")
         .withDatabaseName("keycloak")
