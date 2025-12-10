@@ -22,8 +22,6 @@ import java.net.URISyntaxException;
 import java.util.Arrays;
 
 import static ee.eki.tolkevarav.sso.keycloakserviceprovider.tokenclaimsmapper.Util.isSameHostName;
-import static javax.ws.rs.core.Response.Status.Family.REDIRECTION;
-import static javax.ws.rs.core.Response.Status.Family.familyOf;
 
 public class AuthFlowsPerformer {
     private static final String KEYCLOAK_PATH_PREFIX = "/realms/tolkevarav-dev/protocol/openid-connect";
@@ -91,9 +89,21 @@ public class AuthFlowsPerformer {
         return convertToSuccessResponseOrFail(response).getTokens();
     }
 
-    private URI followResponseRedirect(ClassicHttpResponse response) throws ProtocolException {
-        if (!REDIRECTION.equals(familyOf(response.getCode()))) {
-            throw new IllegalStateException("Response was not a redirect while was still expecting redirects: " + response);
+    private URI followResponseRedirect(ClassicHttpResponse response) throws ProtocolException, IOException {
+        int statusCode = response.getCode();
+        if (statusCode < 300 || statusCode >= 400) {
+            String errorBody = "";
+            try {
+                if (response.getEntity() != null) {
+                    errorBody = new String(response.getEntity().getContent().readAllBytes());
+                }
+            } catch (Exception e) {
+                // Ignore if we can't read the body
+            }
+            throw new IllegalStateException(
+                String.format("Response was not a redirect while was still expecting redirects. Status: %d %s. Body: %s", 
+                    statusCode, response.getReasonPhrase(), errorBody)
+            );
         }
 
         return URI.create(response.getHeader("Location").getValue());
