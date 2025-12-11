@@ -301,7 +301,7 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "**********",
+      "secret": "test-service-account-secret",
       "redirectUris": [],
       "webOrigins": [],
       "notBefore": 0,
