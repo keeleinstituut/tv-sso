@@ -97,6 +97,9 @@ public class ClaimsFromTolkevaravApiMapper extends AbstractOIDCProtocolMapper
         } catch (InterruptedException interruptedException) {
             logger.fatal("Cancelled enriching of token because of interruption.", interruptedException);
             Thread.currentThread().interrupt();
+        } catch (RuntimeException runtimeException) {
+            logger.error("Runtime exception in token enrichment", runtimeException);
+            throw runtimeException;
         } finally {
             enricher.close();
         }
