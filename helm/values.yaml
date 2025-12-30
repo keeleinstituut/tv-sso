@@ -5,7 +5,7 @@
 global:
   projectName: tv
 
-keycloak:
+keycloakx:
   nameOverride: sso
   image:
     registry: ghcr.io

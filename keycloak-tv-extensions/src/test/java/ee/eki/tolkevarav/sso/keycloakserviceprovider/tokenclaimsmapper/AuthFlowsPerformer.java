@@ -106,6 +106,13 @@ public class AuthFlowsPerformer {
             while (!isSameHostName(currentRedirectURI, IGNORED_REDIRECT_URI)) {
                 if (isSameHostName(currentRedirectURI, "mock-tara")) {
                     currentRedirectURI = new URIBuilder(currentRedirectURI).setAuthority(mockTaraUriAuthority).build();
+                } else if (!isSameHostName(currentRedirectURI, keycloakUriAuthority.getHostName()) ||
+                           currentRedirectURI.getPort() != keycloakUriAuthority.getPort()) {
+                    // Rewrite Keycloak redirects to use the correct mapped port
+                    currentRedirectURI = new URIBuilder(currentRedirectURI)
+                        .setHost(keycloakUriAuthority.getHostName())
+                        .setPort(keycloakUriAuthority.getPort())
+                        .build();
                 }
 
                 currentRedirectURI = client.execute(new HttpGet(currentRedirectURI), this::followResponseRedirect);
