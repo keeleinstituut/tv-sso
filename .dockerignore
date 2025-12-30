@@ -1,0 +1,35 @@
+# Build artifacts
+build/
+*.class
+*.jar
+!keycloak-tv-extensions/build/libs/*.jar
+
+# Test files
+**/test/
+**/*Test.java
+**/*Tests.java
+**/test-resources/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+
+*.md
+!README.md
+
+# Gradle
+.gradle/
+gradlew.bat
+
+.DS_Store
+*.log
+*.swp
+*.swo
+*~
+
