@@ -1,4 +1,5 @@
 FROM gradle:jdk17 as build
+
 WORKDIR /home/app
 
 COPY keycloak-tv-extensions/build.gradle keycloak-tv-extensions/settings.gradle ./
@@ -9,11 +10,7 @@ RUN gradle jar --no-daemon
 
 RUN curl -L -o /tmp/amqp-client-5.22.0.jar https://repo1.maven.org/maven2/com/rabbitmq/amqp-client/5.22.0/amqp-client-5.22.0.jar
 
-# TODO: Use an immutable image tag before moving to production
 FROM quay.io/keycloak/keycloak:21.0.2
 
-COPY --from=build /home/app/build/libs/*.jar /opt/bitnami/keycloak/providers/
-RUN cd /opt/bitnami/keycloak/providers && curl -O https://repo1.maven.org/maven2/com/rabbitmq/amqp-client/5.22.0/amqp-client-5.22.0.jar
-
-COPY --from=build /home/app/build/libs/*.jar /opt/bitnami/keycloak/providers/
-COPY --from=build /tmp/amqp-client-5.22.0.jar /opt/bitnami/keycloak/providers/amqp-client-5.22.0.jar
+COPY --from=build /home/app/build/libs/*.jar /opt/keycloak/providers/
+COPY --from=build /tmp/amqp-client-5.22.0.jar /opt/keycloak/providers/amqp-client-5.22.0.jar
