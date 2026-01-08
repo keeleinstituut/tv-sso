@@ -8,7 +8,7 @@ repositories {
 }
 
 ext {
-    keycloakVersion = '21.0.2'
+    keycloakVersion = '26.5.0'
     autoServiceVersion = '1.0.1'
     testContainersVersion = '1.18.0'
 }

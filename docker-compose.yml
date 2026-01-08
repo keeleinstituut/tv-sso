@@ -29,8 +29,8 @@ services:
       RABBITMQ_USER: guest
       RABBITMQ_PASSWORD: guest
       TV_EVENT_LISTENER_CLIENT_ID: tv-keycloak-event-listener
-    #volumes:
-    #  - ./realm-tolkevarav-dev.json:/opt/keycloak/data/import/realm-tolkevarav-dev.json:ro
+    volumes:
+      - ./realm-tolkevarav-dev.json:/opt/keycloak/data/import/realm-tolkevarav-dev.json:ro
 
   database:
     image: postgres:latest
@@ -38,8 +38,6 @@ services:
       POSTGRES_DB: ${KEYCLOAK_DATABASE}
       POSTGRES_USER: ${KEYCLOAK_DATABASE_USER}
       POSTGRES_PASSWORD: ${KEYCLOAK_DATABASE_PASSWORD}
-    volumes:
-      - keycloak_db_data:/var/lib/postgresql/data
 
   nginx:
     image: nginx:latest
