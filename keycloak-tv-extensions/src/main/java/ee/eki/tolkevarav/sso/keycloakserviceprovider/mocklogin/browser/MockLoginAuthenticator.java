@@ -3,8 +3,8 @@ package ee.eki.tolkevarav.sso.keycloakserviceprovider.mocklogin.browser;
 import static ee.eki.tolkevarav.sso.keycloakserviceprovider.mocklogin.MockAuthenticatorUtil.findOrCreateUser;
 import static ee.eki.tolkevarav.sso.keycloakserviceprovider.mocklogin.MockAuthenticatorUtil.username;
 
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
 import org.keycloak.authentication.AuthenticationFlowContext;
 import org.keycloak.authentication.Authenticator;
 import org.keycloak.authentication.authenticators.browser.AbstractUsernameFormAuthenticator;
@@ -20,8 +20,8 @@ public class MockLoginAuthenticator implements Authenticator {
 
   @Override
   public void authenticate(AuthenticationFlowContext context) {
-    LoginFormsProvider form = context.form();
-    Response challenge = form.createForm("mock-login.ftl");
+    Response challenge = context.form()
+        .createForm("mock-login.ftl");
     context.challenge(challenge);
   }
 
