@@ -25,5 +25,5 @@ appVersion: "" # Replaced during continuous delivery pipeline
 
 dependencies:
   - name: "keycloakx"
-    version: "7.1.4"
+    version: "2.2.2"
     repository: "https://codecentric.github.io/helm-charts"

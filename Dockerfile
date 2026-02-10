@@ -15,6 +15,4 @@ FROM quay.io/keycloak/keycloak:21.0.2
 COPY --from=build /home/app/build/libs/*.jar /opt/keycloak/providers/
 COPY --from=build /tmp/amqp-client-5.22.0.jar /opt/keycloak/providers/amqp-client-5.22.0.jar
 
-ENV KC_HTTP_MANAGEMENT_PORT=9000
-
 RUN /opt/keycloak/bin/kc.sh build --db=postgres --health-enabled=true --metrics-enabled=true
