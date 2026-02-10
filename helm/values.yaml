@@ -19,37 +19,9 @@ keycloakx:
     # TODO: Update configuration below after adopting Istio
     hostname: sso.dev.tolkevarav.eki.ee
 
-  livenessProbe:
-    httpGet:
-      path: /health/live
-      port: http
-      scheme: HTTP
-    failureThreshold: 3
-    periodSeconds: 10
-    successThreshold: 1
-    timeoutSeconds: 5
-
-  readinessProbe:
-    httpGet:
-      path: /health/ready
-      port: http
-      scheme: HTTP
-    initialDelaySeconds: 10
-    failureThreshold: 3
-    periodSeconds: 10
-    successThreshold: 1
-    timeoutSeconds: 1
-
-  startupProbe:
-    httpGet:
-      path: /health
-      port: http
-      scheme: HTTP
-    initialDelaySeconds: 15
-    failureThreshold: 60
-    periodSeconds: 5
-    successThreshold: 1
-    timeoutSeconds: 1
+  # Configure probes to use http port (8080) instead of http-internal port (9000)
+  http:
+    internalPort: http
 
   # TODO: Once Postgres operator is in use, use the operator's database as suggested by commented-out code below
 #  postgresql.enabled: "false"
