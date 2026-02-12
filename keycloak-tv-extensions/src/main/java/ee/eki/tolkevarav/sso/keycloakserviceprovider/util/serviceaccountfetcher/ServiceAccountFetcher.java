@@ -39,6 +39,8 @@ public class ServiceAccountFetcher {
             String baseUri = this.keycloakSession.getContext().getUri().getBaseUri().toString();
             var tokenEndpoint = new URI("%srealms/%s/protocol/openid-connect/token".formatted(baseUri, realm.getName()));
 
+            logger.info("Requesting token from endpoint: " + tokenEndpoint);
+
             var auth = client.getClientId() + ":" + client.getSecret();
             var encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
             var body = "grant_type=client_credentials";
