@@ -1,4 +1,4 @@
-FROM gradle:jdk17 as build
+FROM gradle:jdk17 AS build
 
 WORKDIR /home/app
 
@@ -10,7 +10,7 @@ RUN gradle jar --no-daemon
 
 RUN curl -L -o /tmp/amqp-client-5.22.0.jar https://repo1.maven.org/maven2/com/rabbitmq/amqp-client/5.22.0/amqp-client-5.22.0.jar
 
-FROM quay.io/keycloak/keycloak:21.0.2
+FROM quay.io/keycloak/keycloak:26.5.3
 
 COPY --from=build /home/app/build/libs/*.jar /opt/keycloak/providers/
 COPY --from=build /tmp/amqp-client-5.22.0.jar /opt/keycloak/providers/amqp-client-5.22.0.jar
